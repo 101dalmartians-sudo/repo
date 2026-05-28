@@ -9,6 +9,7 @@ build/
 dist/
 *.sqlite3
 media/
+staticfiles/
 .vscode/
 .env
 *.log
