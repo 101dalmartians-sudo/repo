@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow">
+  <a href="{% url 'news_list' %}" class="text-blue-600 hover:underline">← Back to News</a>
+  <h1 class="text-3xl font-semibold mt-4">{{ news.title }}</h1>
+  <p class="text-sm text-slate-500">{{ news.created_at|date:"M d, Y H:i" }} by {{ news.created_by.username }}</p>
+  
+  <div class="mt-6 text-slate-700">
+    {{ news.content|linebreaks }}
+  </div>
+
+  {% if news.images.all %}
+    <div class="mt-8">
+      <h2 class="text-xl font-semibold mb-3">Images</h2>
+      <div class="grid grid-cols-2 gap-4">
+        {% for img in news.images.all %}
+          <div>
+            <img src="{{ img.image.url }}" alt="News image" class="w-full rounded object-cover">
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if news.documents.all %}
+    <div class="mt-8">
+      <h2 class="text-xl font-semibold mb-3">Documents</h2>
+      <ul class="space-y-2">
+        {% for doc in news.documents.all %}
+          <li>
+            <a href="{{ doc.document.url }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-2">
+              {% if doc.document_type == 'pdf' %}
+                📄 PDF:
+              {% else %}
+                📝 Document:
+              {% endif %}
+              {{ doc.document.name|truncatechars:50 }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

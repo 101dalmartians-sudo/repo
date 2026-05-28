@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+    <h1 class="text-3xl font-semibold text-slate-900">Access blocked</h1>
+    <p class="mt-4 text-slate-600">This account does not currently have a student or teacher profile assigned.</p>
+    <p class="mt-2 text-slate-600">Please contact an administrator to update your role.</p>
+    <a href="{% url 'logout' %}" class="mt-6 inline-flex rounded-2xl bg-slate-100 px-5 py-3 text-slate-900 shadow-sm transition hover:bg-slate-200">Sign out</a>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+    <h1 class="text-3xl font-semibold text-slate-900">Grades Console</h1>
+    <p class="mt-4 text-slate-600">Use this area to start grade entry or review student grade reports.</p>
+    <div class="mt-6 flex flex-col gap-4 sm:flex-row">
+        <a class="inline-flex justify-center rounded-2xl bg-academy px-5 py-3 text-white shadow-sm transition hover:bg-red-700" href="{% url 'grades_entry' %}">Enter grades</a>
+        <a class="inline-flex justify-center rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-slate-900 shadow-sm transition hover:bg-slate-100" href="{% url 'grades_student_view' %}">View my grades</a>
+    </div>
+</div>
+{% endblock %}

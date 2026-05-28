@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl rounded-2xl bg-white p-8 shadow">
+  <h1 class="text-2xl font-semibold">Manage Profiles</h1>
+
+  <h2 class="mt-6 text-lg font-medium">Pending Students</h2>
+  {% if pending_students %}
+    <ul class="mt-2 space-y-3">
+      {% for p in pending_students %}
+        <li class="flex items-center justify-between border p-4 rounded">
+          <div class="flex items-center gap-4">
+            {% if p.profile_picture %}
+              <img src="{{ p.profile_picture.url }}" alt="Profile" class="h-16 w-16 rounded object-cover">
+            {% else %}
+              <div class="h-16 w-16 rounded bg-slate-200 flex items-center justify-center">
+                <span class="text-xs text-slate-500">No image</span>
+              </div>
+            {% endif %}
+            <div>
+              <strong>{{ p.user.username }}</strong> — {{ p.student_id }} ({{ p.current_class }})
+            </div>
+          </div>
+          <div class="space-x-2">
+            <form method="post" style="display:inline">
+              {% csrf_token %}
+              <input type="hidden" name="type" value="student">
+              <input type="hidden" name="profile_id" value="{{ p.id }}">
+              <button name="action" value="approve" class="btn">Approve</button>
+            </form>
+            <a href="{% url 'edit_profile' 'student' p.id %}" class="btn">Edit</a>
+            <form method="post" style="display:inline">
+              {% csrf_token %}
+              <input type="hidden" name="type" value="student">
+              <input type="hidden" name="profile_id" value="{{ p.id }}">
+              <button name="action" value="reject" class="btn btn-danger">Reject</button>
+            </form>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="mt-2 text-sm text-slate-600">No pending student profiles.</p>
+  {% endif %}
+
+  <h2 class="mt-6 text-lg font-medium">Pending Teachers</h2>
+  {% if pending_teachers %}
+    <ul class="mt-2 space-y-3">
+      {% for p in pending_teachers %}
+        <li class="flex items-center justify-between border p-4 rounded">
+          <div class="flex items-center gap-4">
+            {% if p.profile_picture %}
+              <img src="{{ p.profile_picture.url }}" alt="Profile" class="h-16 w-16 rounded object-cover">
+            {% else %}
+              <div class="h-16 w-16 rounded bg-slate-200 flex items-center justify-center">
+                <span class="text-xs text-slate-500">No image</span>
+              </div>
+            {% endif %}
+            <div>
+              <strong>{{ p.user.username }}</strong> — {{ p.department }}
+            </div>
+          </div>
+          <div class="space-x-2">
+            <form method="post" style="display:inline">
+              {% csrf_token %}
+              <input type="hidden" name="type" value="teacher">
+              <input type="hidden" name="profile_id" value="{{ p.id }}">
+              <button name="action" value="approve" class="btn">Approve</button>
+            </form>
+            <a href="{% url 'edit_profile' 'teacher' p.id %}" class="btn">Edit</a>
+            <form method="post" style="display:inline">
+              {% csrf_token %}
+              <input type="hidden" name="type" value="teacher">
+              <input type="hidden" name="profile_id" value="{{ p.id }}">
+              <button name="action" value="reject" class="btn btn-danger">Reject</button>
+            </form>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="mt-2 text-sm text-slate-600">No pending teacher profiles.</p>
+  {% endif %}
+</div>
+{% endblock %}

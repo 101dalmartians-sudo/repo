@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl rounded-2xl bg-white p-8 shadow">
+  <h1 class="text-2xl font-semibold">Edit Profile</h1>
+  <form method="post" enctype="multipart/form-data" class="mt-4 space-y-4">
+    {% csrf_token %}
+    {% if profile.profile_picture %}
+      <div>
+        <p class="text-sm font-medium">Current picture:</p>
+        <img src="{{ profile.profile_picture.url }}" alt="Profile" class="mt-2 h-32 w-32 rounded object-cover">
+      </div>
+    {% endif %}
+    <label class="block">
+      <span>Profile Picture</span>
+      <input type="file" name="profile_picture" accept="image/*" class="input">
+    </label>
+    {% if type == 'student' %}
+      <label class="block">
+        <span>Student ID</span>
+        <input name="student_id" value="{{ profile.student_id }}" class="input">
+      </label>
+      <label class="block">
+        <span>Current Class</span>
+        <input name="current_class" value="{{ profile.current_class }}" class="input">
+      </label>
+    {% else %}
+      <label class="block">
+        <span>Department</span>
+        <input name="department" value="{{ profile.department }}" class="input">
+      </label>
+      <label class="block">
+        <span>Work Email</span>
+        <input type="email" name="work_email" value="{{ profile.work_email|default:'' }}" class="input">
+      </label>
+      <label class="block">
+        <span>Phone Number</span>
+        <input type="tel" name="phone_number" value="{{ profile.phone_number|default:'' }}" class="input">
+      </label>
+    {% endif %}
+    <div>
+      <button class="btn" type="submit">Save</button>
+      <a class="btn" href="{% url 'manage_profiles' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

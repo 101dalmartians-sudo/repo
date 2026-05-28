@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl rounded-2xl bg-white p-8 shadow">
+  <h1 class="text-2xl font-semibold">Manage News</h1>
+  <a href="{% url 'create_news' %}" class="mt-4 inline-block btn">+ Create News</a>
+  
+  {% if news %}
+    <div class="mt-6 space-y-3">
+      {% for item in news %}
+        <div class="border p-4 rounded flex items-center justify-between">
+          <div>
+            <h3 class="font-semibold">{{ item.title }}</h3>
+            <p class="text-sm text-slate-500">{{ item.created_at|date:"M d, Y" }} • {{ item.images.count }} image(s) • {{ item.documents.count }} document(s)</p>
+          </div>
+          <div class="space-x-2">
+            <a href="{% url 'edit_news' item.id %}" class="btn">Edit</a>
+            <form method="post" action="{% url 'delete_news' item.id %}" style="display:inline">
+              {% csrf_token %}
+              <button class="btn btn-danger" onclick="return confirm('Delete this news?')">Delete</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="mt-4 text-slate-600">No news yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

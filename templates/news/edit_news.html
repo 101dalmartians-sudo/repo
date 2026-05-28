@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl rounded-2xl bg-white p-8 shadow">
+  <h1 class="text-2xl font-semibold">Edit News</h1>
+  <form method="post" enctype="multipart/form-data" class="mt-4 space-y-4">
+    {% csrf_token %}
+    <label class="block">
+      <span class="font-medium">Title *</span>
+      <input type="text" name="title" value="{{ news.title }}" required class="input">
+    </label>
+    <label class="block">
+      <span class="font-medium">Content *</span>
+      <textarea name="content" rows="6" required class="input">{{ news.content }}</textarea>
+    </label>
+
+    <div class="border-t pt-4">
+      <h3 class="font-semibold mb-2">Current Images ({{ news.images.count }}/5)</h3>
+      {% if news.images.all %}
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          {% for img in news.images.all %}
+            <div class="relative">
+              <img src="{{ img.image.url }}" alt="News image" class="w-full rounded h-20 object-cover">
+              <a href="{% url 'delete_image' news.id img.id %}" class="absolute top-0 right-0 bg-red-500 text-white text-xs px-2 py-1 rounded" onclick="return confirm('Delete this image?')">✕</a>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% if news.images.count < 5 %}
+        <label class="block">
+          <span class="font-medium">Add Images</span>
+          <input type="file" name="images" multiple accept="image/*" class="input">
+          <p class="text-xs text-slate-500 mt-1">Can add {{ 5|add:news.images.count|add:'-5' }} more image(s)</p>
+        </label>
+      {% endif %}
+    </div>
+
+    <div class="border-t pt-4">
+      <h3 class="font-semibold mb-2">Current Documents ({{ news.documents.count }}/5)</h3>
+      {% if news.documents.all %}
+        <ul class="mb-4 space-y-2">
+          {% for doc in news.documents.all %}
+            <li class="flex justify-between items-center p-2 bg-slate-100 rounded">
+              <span class="text-sm">📄 {{ doc.document.name|truncatechars:40 }}</span>
+              <a href="{% url 'delete_document' news.id doc.id %}" class="text-red-600 text-sm" onclick="return confirm('Delete this document?')">✕</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if news.documents.count < 5 %}
+        <label class="block">
+          <span class="font-medium">Add Documents</span>
+          <input type="file" name="documents" multiple accept=".pdf,.doc,.docx" class="input">
+          <p class="text-xs text-slate-500 mt-1">Can add {{ 5|add:news.documents.count|add:'-5' }} more document(s)</p>
+        </label>
+      {% endif %}
+    </div>
+
+    <div class="flex gap-2 border-t pt-4">
+      <button type="submit" class="btn">Update News</button>
+      <a href="{% url 'manage_news' %}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

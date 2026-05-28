@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <div class="flex items-center gap-4">
+            {% if request.user.student_profile.profile_picture %}
+                <img src="{{ request.user.student_profile.profile_picture.url }}" alt="Profile picture" class="h-20 w-20 rounded-full object-cover border border-slate-200">
+            {% else %}
+                <div class="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                    <span class="text-xl">👤</span>
+                </div>
+            {% endif %}
+            <div>
+                <h1 class="text-3xl font-semibold text-slate-900">Student Dashboard</h1>
+                <p class="mt-2 text-slate-600">Welcome back, {{ request.user.get_full_name|default:request.user.username }}.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+        <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+            <h2 class="text-2xl font-semibold text-slate-900">Homework hub</h2>
+            {% if assignments %}
+                <div class="mt-4 space-y-4">
+                    {% for item in assignments %}
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="font-semibold text-slate-900">{{ item.title }}</p>
+                        <p class="text-sm text-slate-600">{{ item.subject }}</p>
+                        <p class="mt-2 text-sm text-slate-500">Due {{ item.due_date|date:'Y-m-d H:i' }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="mt-4 text-slate-600">No current assignments for your class.</p>
+            {% endif %}
+        </div>
+
+        <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+            <h2 class="text-2xl font-semibold text-slate-900">Notifications</h2>
+            {% if notifications %}
+                <div class="mt-4 space-y-3">
+                    {% for note in notifications %}
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="font-semibold text-slate-900">{{ note.title }}</p>
+                        <p class="mt-1 text-sm text-slate-600">{{ note.message|truncatechars:120 }}</p>
+                        <p class="mt-2 text-xs text-slate-500">{{ note.timestamp|date:'Y-m-d H:i' }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="mt-4 text-slate-600">No new notifications.</p>
+            {% endif %}
+            <div class="mt-6 space-y-3">
+                <a href="{% url 'grades_student_view' %}" class="block rounded-2xl bg-slate-100 px-4 py-3 text-slate-900 hover:bg-slate-200">View full grade report</a>
+                <a href="{% url 'logout' %}" class="block rounded-2xl bg-slate-100 px-4 py-3 text-slate-900 hover:bg-slate-200">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-semibold text-slate-900">Latest News</h2>
+            <a href="{% url 'news_list' %}" class="text-sm text-academy hover:underline">View all →</a>
+        </div>
+        {% if news %}
+            <div class="mt-4 space-y-3">
+                {% for item in news %}
+                <a href="{% url 'news_detail' item.id %}" class="block rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:shadow-md transition">
+                    <p class="font-semibold text-slate-900">{{ item.title }}</p>
+                    <p class="mt-1 text-sm text-slate-600">{{ item.content|truncatewords:15 }}</p>
+                    <p class="mt-2 text-xs text-slate-500">{{ item.created_at|date:'Y-m-d' }}</p>
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="mt-4 text-slate-600">No news yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

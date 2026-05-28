@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+    <h1 class="text-3xl font-semibold text-slate-900">Admin dashboard</h1>
+    <p class="mt-3 text-slate-600">Welcome, {{ admin_profile.user.username }}. This is your admin control area.</p>
+
+    <div class="mt-8 grid gap-4 sm:grid-cols-2">
+        <a href="{% url 'admin_approvals' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
+            <p class="text-lg font-semibold">Pending approvals</p>
+            <p class="mt-2 text-sm text-slate-600">Review and approve admin signup requests.</p>
+        </a>
+        <a href="{% url 'manage_profiles' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
+            <p class="text-lg font-semibold">Manage student & teacher profiles</p>
+            <p class="mt-2 text-sm text-slate-600">Approve, edit, or reject student and teacher accounts.</p>
+        </a>
+        <a href="{% url 'manage_news' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
+            <p class="text-lg font-semibold">Manage News</p>
+            <p class="mt-2 text-sm text-slate-600">Create, edit, or delete news posts with images and documents.</p>
+        </a>
+        <a href="/admin/" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
+            <p class="text-lg font-semibold">Django admin</p>
+            <p class="mt-2 text-sm text-slate-600">Open the built-in Django admin site for advanced management.</p>
+        </a>
+    </div>
+
+    <div class="mt-8">
+        <h2 class="text-xl font-semibold">Notifications</h2>
+        {% if notifications %}
+            <ul class="mt-3 space-y-2">
+                {% for n in notifications %}
+                    <li class="border p-3 rounded bg-white">
+                        <div class="flex justify-between">
+                            <div>
+                                <strong>{{ n.title }}</strong>
+                                <div class="text-sm text-slate-600">{{ n.message }}</div>
+                            </div>
+                            <div class="text-xs text-slate-500">{{ n.timestamp }}</div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="mt-2 text-sm text-slate-600">No notifications.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

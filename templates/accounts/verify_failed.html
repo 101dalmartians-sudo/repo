@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-md rounded-3xl bg-white p-8 shadow-lg">
+    <h1 class="text-2xl font-semibold">Verification failed</h1>
+    <p class="mt-4">We couldn't verify your email. Reason: {{ reason }}</p>
+    <p class="mt-2">If you need help, contact support.</p>
+</div>
+{% endblock %}

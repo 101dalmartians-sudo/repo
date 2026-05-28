@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-6xl space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h1 class="text-3xl font-semibold text-slate-900">My Grades</h1>
+    </div>
+    {% if grades %}
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <div class="overflow-hidden rounded-3xl border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Subject</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Term</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Percentage</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Cambridge grade</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 bg-white">
+                    {% for grade in grades %}
+                    <tr>
+                        <td class="whitespace-nowrap px-6 py-4 text-sm text-slate-900">{{ grade.subject }}</td>
+                        <td class="whitespace-nowrap px-6 py-4 text-sm text-slate-600">{{ grade.term }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-700">{{ grade.percentage }}%</td>
+                        <td class="px-6 py-4 text-sm text-slate-700">{{ grade.cambridge_letter_grade }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="mt-6 text-sm text-slate-600"><strong>Average percentage:</strong> {{ average|floatformat:2 }}%</p>
+    </div>
+    {% else %}
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <p>No grades have been entered for your account yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

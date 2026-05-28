@@ -1,0 +1,36 @@
+version: '3.9'
+
+services:
+  web:
+    build: .
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app:rw
+    environment:
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: "replace-me"
+      DJANGO_EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
+      DEFAULT_FROM_EMAIL: noreply@aspireacademy.local
+      CELERY_TASK_ALWAYS_EAGER: "True"
+      # Optional DATABASE_URL for production. When not set, default sqlite will be used.
+      DATABASE_URL: ${DATABASE_URL:-}
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: aspire_db
+      POSTGRES_USER: aspire
+      POSTGRES_PASSWORD: aspire_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:

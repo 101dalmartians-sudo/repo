@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl rounded-2xl bg-white p-8 shadow">
+  <h1 class="text-2xl font-semibold">Create News</h1>
+  <form method="post" enctype="multipart/form-data" class="mt-4 space-y-4">
+    {% csrf_token %}
+    <label class="block">
+      <span class="font-medium">Title *</span>
+      <input type="text" name="title" required class="input">
+    </label>
+    <label class="block">
+      <span class="font-medium">Content *</span>
+      <textarea name="content" rows="6" required class="input"></textarea>
+    </label>
+    <label class="block">
+      <span class="font-medium">Images (up to 5, optional)</span>
+      <input type="file" name="images" multiple accept="image/*" class="input">
+      <p class="text-xs text-slate-500 mt-1">Upload up to 5 images</p>
+    </label>
+    <label class="block">
+      <span class="font-medium">Documents (up to 5, PDF/Word, optional)</span>
+      <input type="file" name="documents" multiple accept=".pdf,.doc,.docx" class="input">
+      <p class="text-xs text-slate-500 mt-1">Upload up to 5 PDF or Word documents</p>
+    </label>
+    <div class="flex gap-2">
+      <button type="submit" class="btn">Create News</button>
+      <a href="{% url 'manage_news' %}" class="btn">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

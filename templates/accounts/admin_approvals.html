@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl rounded-3xl bg-white p-8 shadow-lg">
+    <h1 class="text-2xl font-semibold">Pending admin approvals</h1>
+    {% if messages %}
+        {% for m in messages %}
+            <div class="mt-4">{{ m }}</div>
+        {% endfor %}
+    {% endif %}
+    <table class="w-full mt-6 table-auto">
+        <thead><tr><th>User</th><th>Email</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% for p in pending %}
+            <tr>
+                <td>{{ p.user.username }}</td>
+                <td>{{ p.user.email }}</td>
+                <td>
+                    <form method="post" style="display:inline">{% csrf_token %}
+                        <input type="hidden" name="profile_id" value="{{ p.id }}">
+                        <button name="action" value="approve" class="rounded bg-green-600 px-3 py-1 text-white">Approve</button>
+                    </form>
+                    <form method="post" style="display:inline">{% csrf_token %}
+                        <input type="hidden" name="profile_id" value="{{ p.id }}">
+                        <button name="action" value="reject" class="rounded bg-red-600 px-3 py-1 text-white">Reject</button>
+                    </form>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="3">No pending admin approvals.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
