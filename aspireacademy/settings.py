@@ -16,10 +16,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
 # Secrets and environment-driven settings
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'smkwesha')
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    SECRET_KEY = 'smkwesha' if DEBUG else None
+    if SECRET_KEY is None:
+        raise ImproperlyConfigured('The DJANGO_SECRET_KEY environment variable must be set in production.')
 
 # Allow hosts configured via environment (comma-separated), with sensible defaults.
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,aspire-portal.onrender.com').split(',')
 
 # Application definition
 INSTALLED_APPS = [
