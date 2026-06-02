@@ -6,15 +6,17 @@ securely in production.
 """
 from pathlib import Path
 import os
+import secrets
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Secrets and environment-driven settings
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-placeholder-secret-key')
-
 # DEBUG should be disabled in production. Set DJANGO_DEBUG=True in env to enable.
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+
+# Secrets and environment-driven settings
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'smkwesha')
 
 # Allow hosts configured via environment (comma-separated), with sensible defaults.
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
@@ -107,7 +109,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Security settings recommended for production
 if not DEBUG:
-    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'True') == 'True'
+    SECURE_SSL_REDIRECT = os.environ.get(
+        'DJANGO_SECURE_SSL_REDIRECT',
+        os.environ.get('SECURE_SSL_REDIRECT', 'False')
+    ) == 'True'
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', 3600))
