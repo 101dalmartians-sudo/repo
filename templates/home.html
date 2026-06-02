@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 <style>
@@ -30,7 +31,7 @@
 </style>
 
 <div class="home-hero">
-  <img class="hero-bg" src="/static/images/home_bg.jpg" alt="Aspire Academy background" />
+  <img class="hero-bg" src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy background" />
   <div class="absolute inset-0 flex items-center justify-center px-4 py-20">
     <div class="hero-panel mx-auto max-w-2xl text-center">
       <h1 class="text-5xl font-bold">Aspire Academy</h1>
