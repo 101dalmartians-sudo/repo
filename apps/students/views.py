@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect
 from apps.assignments.models import Assignment
 from apps.notifications.models import Notification
 from apps.news.models import News
+from .models import StudentProfile, FinancialRecord
 
 
 @login_required
@@ -20,4 +21,18 @@ def dashboard(request):
         'assignments': assignments,
         'notifications': notifications,
         'news': news,
+    })
+
+
+@login_required
+def profile_detail(request):
+    if not hasattr(request.user, 'student_profile'):
+        return redirect('accounts_home')
+    
+    profile = request.user.student_profile
+    financial_records = FinancialRecord.objects.filter(student=profile).order_by('-year', 'term')
+    
+    return render(request, 'students/profile_detail.html', {
+        'profile': profile,
+        'financial_records': financial_records,
     })
