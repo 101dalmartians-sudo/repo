@@ -5,10 +5,16 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 
 
-from apps.students.models import StudentProfile
+from decimal import Decimal
+
+from django.db.models import F, Q, Sum
+from django.utils import timezone
+
+from apps.students.models import StudentProfile, FinancialRecord, Payment, AttendanceRecord
 from apps.teachers.models import TeacherProfile
 from apps.notifications.models import Notification
 from apps.news.models import News, GalleryImage
+from apps.grades.models import Grade
 
 
 def login_view(request):
@@ -67,6 +73,39 @@ def home(request):
     if role == 'teacher':
         return redirect('teachers_dashboard')
     return redirect('admin_dashboard')
+
+
+@login_required
+def admin_dashboard(request):
+    if not hasattr(request.user, 'admin_profile'):
+        return redirect('accounts_home')
+
+    admin_profile = request.user.admin_profile
+    if not admin_profile.approved:
+        return redirect('accounts_home')
+
+    total_students = StudentProfile.objects.filter(approved=True).count()
+    total_fees_collected = Payment.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    outstanding_records = FinancialRecord.objects.filter(Q(transport_balance__gt=0) | Q(tuition_balance__gt=0))
+    total_outstanding = outstanding_records.aggregate(total=Sum(F('transport_balance') + F('tuition_balance')))['total'] or Decimal('0.00')
+    term_income = FinancialRecord.objects.values('term', 'year').annotate(
+        total_paid=Sum(F('transport_paid') + F('tuition_paid'))
+    ).order_by('-year', 'term')[:6]
+    attendance_rate = AttendanceRecord.objects.filter(status='present').count()
+    attendance_total = AttendanceRecord.objects.count() or 1
+    attendance_percentage = (attendance_rate / attendance_total) * 100 if attendance_total else 0
+    overdue_accounts = outstanding_records.filter(due_date__lt=timezone.now().date()).count()
+
+    return render(request, 'accounts/admin_dashboard.html', {
+        'admin_profile': admin_profile,
+        'notifications': Notification.objects.filter(recipient=request.user).order_by('-timestamp')[:10],
+        'total_students': total_students,
+        'total_fees_collected': total_fees_collected,
+        'total_outstanding': total_outstanding,
+        'term_income': term_income,
+        'attendance_percentage': attendance_percentage,
+        'overdue_accounts': overdue_accounts,
+    })
 
 
 def signup_view(request):
@@ -148,21 +187,6 @@ def admin_approvals(request):
             messages.success(request, 'Rejected and removed account.')
 
     return render(request, 'accounts/admin_approvals.html', {'pending': pending})
-
-
-@login_required
-def admin_dashboard(request):
-    if not hasattr(request.user, 'admin_profile'):
-        return redirect('accounts_home')
-
-    admin_profile = request.user.admin_profile
-    if not admin_profile.approved:
-        return redirect('accounts_home')
-
-    return render(request, 'accounts/admin_dashboard.html', {
-        'admin_profile': admin_profile,
-        'notifications': Notification.objects.filter(recipient=request.user).order_by('-timestamp')[:10],
-    })
 
 
 @login_required

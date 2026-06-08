@@ -5,6 +5,25 @@
     <h1 class="text-3xl font-semibold text-slate-900">Admin dashboard</h1>
     <p class="mt-3 text-slate-600">Welcome, {{ admin_profile.user.username }}. This is your admin control area.</p>
 
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-3xl bg-slate-50 p-6 shadow-sm border border-slate-200">
+            <p class="text-sm text-slate-500">Approved students</p>
+            <p class="mt-3 text-3xl font-semibold text-slate-900">{{ total_students }}</p>
+        </div>
+        <div class="rounded-3xl bg-slate-50 p-6 shadow-sm border border-slate-200">
+            <p class="text-sm text-slate-500">Total fees collected</p>
+            <p class="mt-3 text-3xl font-semibold text-emerald-700">{{ total_fees_collected|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-3xl bg-slate-50 p-6 shadow-sm border border-slate-200">
+            <p class="text-sm text-slate-500">Outstanding balance</p>
+            <p class="mt-3 text-3xl font-semibold text-rose-600">{{ total_outstanding|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-3xl bg-slate-50 p-6 shadow-sm border border-slate-200">
+            <p class="text-sm text-slate-500">Overdue accounts</p>
+            <p class="mt-3 text-3xl font-semibold text-amber-700">{{ overdue_accounts }}</p>
+        </div>
+    </div>
+
     <div class="mt-8 grid gap-4 sm:grid-cols-2">
         <a href="{% url 'admin_approvals' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
             <p class="text-lg font-semibold">Pending approvals</p>
@@ -22,6 +41,41 @@
             <p class="text-lg font-semibold">Django admin</p>
             <p class="mt-2 text-sm text-slate-600">Open the built-in Django admin site for advanced management.</p>
         </a>
+    </div>
+
+    <div class="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+            <h2 class="text-xl font-semibold mb-5">Latest term income</h2>
+            {% if term_income %}
+                <div class="space-y-4">
+                    {% for item in term_income %}
+                        <div class="rounded-3xl border border-slate-200 p-4">
+                            <div class="flex items-center justify-between gap-4">
+                                <div>
+                                    <p class="text-sm text-slate-500">{{ item.term|title }} {{ item.year }}</p>
+                                    <p class="text-lg font-semibold text-slate-900">{{ item.total_paid|floatformat:2 }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-slate-600">No income history available yet.</p>
+            {% endif %}
+        </div>
+        <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+            <h2 class="text-xl font-semibold mb-5">School health</h2>
+            <div class="space-y-4 text-slate-700">
+                <div>
+                    <p class="text-sm text-slate-500">Attendance rate</p>
+                    <p class="text-3xl font-semibold text-slate-900">{{ attendance_percentage|floatformat:2 }}%</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">Overdue student accounts</p>
+                    <p class="text-3xl font-semibold text-rose-600">{{ overdue_accounts }}</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="mt-8">

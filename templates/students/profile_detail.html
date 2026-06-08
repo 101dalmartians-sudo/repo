@@ -1,122 +1,257 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
-  <h1 class="text-3xl font-bold mb-6">Student Profile</h1>
-
-  <!-- Student Details Section -->
-  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-    <div class="grid md:grid-cols-2 gap-6">
+<div class="max-w-6xl mx-auto space-y-8">
+  <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
-        <h2 class="text-xl font-semibold mb-4">Personal Information</h2>
-        <div class="space-y-3">
-          <div>
-            <label class="text-sm font-medium text-gray-600">Name</label>
-            <p class="text-lg">{{ profile.user.get_full_name }}</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-gray-600">Student ID</label>
-            <p class="text-lg">{{ profile.student_id }}</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-gray-600">Email</label>
-            <p class="text-lg">{{ profile.user.email }}</p>
-          </div>
-        </div>
+        <h1 class="text-3xl font-bold">Student Profile</h1>
+        <p class="mt-2 text-slate-600">Financial, attendance, exams, and grade summaries for {{ profile.user.get_full_name }}.</p>
       </div>
-      <div>
-        <h2 class="text-xl font-semibold mb-4">Academic Information</h2>
-        <div class="space-y-3">
-          <div>
-            <label class="text-sm font-medium text-gray-600">Current Class</label>
-            <p class="text-lg">{{ profile.current_class }}</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-gray-600">Status</label>
-            <p class="text-lg">
-              {% if profile.approved %}
-                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Approved</span>
-              {% else %}
-                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">Pending Approval</span>
-              {% endif %}
-            </p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-gray-600">Email Verified</label>
-            <p class="text-lg">
-              {% if profile.email_verified %}
-                <span class="text-green-600">✓ Verified</span>
-              {% else %}
-                <span class="text-red-600">✗ Not Verified</span>
-              {% endif %}
-            </p>
-          </div>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <div class="rounded-3xl bg-slate-50 p-4 shadow-sm">
+          <p class="text-sm text-slate-500">Total Due</p>
+          <p class="mt-2 text-2xl font-semibold text-slate-900">{{ student_summary.total_due|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-3xl bg-slate-50 p-4 shadow-sm">
+          <p class="text-sm text-slate-500">Total Paid</p>
+          <p class="mt-2 text-2xl font-semibold text-emerald-700">{{ student_summary.total_paid|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-3xl bg-slate-50 p-4 shadow-sm">
+          <p class="text-sm text-slate-500">Total Balance</p>
+          <p class="mt-2 text-2xl font-semibold text-rose-600">{{ student_summary.total_balance|floatformat:2 }}</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Financial Records Section -->
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-2xl font-bold mb-6">Financial Records</h2>
-    
-    {% if financial_records %}
-      {% for record in financial_records %}
-        <div class="mb-8">
-          <h3 class="text-lg font-semibold mb-4 text-academy">{{ record.get_term_display }} {{ record.year }}</h3>
-          {% if record.due_date %}
-            <p class="text-sm text-gray-600 mb-4">
-              <span class="font-medium">Due Date:</span> {{ record.due_date|date:"M d, Y" }}
-            </p>
-          {% endif %}
-          
-          <div class="overflow-x-auto">
-            <table class="w-full border-collapse border border-gray-300">
-              <thead>
-                <tr class="bg-academy text-white">
-                  <th class="border border-gray-300 px-4 py-2 text-left font-semibold">Description</th>
-                  <th class="border border-gray-300 px-4 py-2 text-right font-semibold">Transport Fee</th>
-                  <th class="border border-gray-300 px-4 py-2 text-right font-semibold">School Tuition</th>
-                  <th class="border border-gray-300 px-4 py-2 text-right font-semibold">Totals</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="bg-gray-50 hover:bg-gray-100">
-                  <td class="border border-gray-300 px-4 py-2 font-medium">Fee</td>
-                  <td class="border border-gray-300 px-4 py-2 text-right">{{ record.transport_fee|floatformat:2 }}</td>
-                  <td class="border border-gray-300 px-4 py-2 text-right">{{ record.school_tuition|floatformat:2 }}</td>
-                  <td class="border border-gray-300 px-4 py-2 text-right font-semibold">{{ record.total_fee|floatformat:2 }}</td>
-                </tr>
-                <tr class="hover:bg-gray-100">
-                  <td class="border border-gray-300 px-4 py-2 font-medium">Amount Paid</td>
-                  <td class="border border-gray-300 px-4 py-2 text-right text-green-600">{{ record.transport_paid|floatformat:2 }}</td>
-                  <td class="border border-gray-300 px-4 py-2 text-right text-green-600">{{ record.tuition_paid|floatformat:2 }}</td>
-                  <td class="border border-gray-300 px-4 py-2 text-right font-semibold text-green-600">{{ record.total_paid|floatformat:2 }}</td>
-                </tr>
-                <tr class="bg-red-50 hover:bg-red-100">
-                  <td class="border border-gray-300 px-4 py-2 font-medium">Balance</td>
-                  <td class="border border-gray-300 px-4 py-2 text-right text-red-600">{{ record.transport_balance|floatformat:2 }}</td>
-                  <td class="border border-gray-300 px-4 py-2 text-right text-red-600">{{ record.tuition_balance|floatformat:2 }}</td>
-                  <td class="border border-gray-300 px-4 py-2 text-right font-semibold text-red-600">{{ record.total_balance|floatformat:2 }}</td>
-                </tr>
-              </tbody>
-            </table>
+  <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+    <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+      <h2 class="text-xl font-semibold mb-5">Summary</h2>
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="rounded-3xl border border-slate-200 p-4">
+          <h3 class="text-sm uppercase text-slate-500">Attendance</h3>
+          <div class="mt-4 space-y-2 text-slate-700">
+            <p><span class="font-semibold">Present:</span> {{ attendance_summary.present }}</p>
+            <p><span class="font-semibold">Absent:</span> {{ attendance_summary.absent }}</p>
+            <p><span class="font-semibold">Late:</span> {{ attendance_summary.late }}</p>
           </div>
         </div>
-      {% endfor %}
-    {% else %}
-      <p class="text-gray-600 text-center py-8">No financial records available yet.</p>
-    {% endif %}
-
-    {% if request.user.is_staff %}
-      <div class="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <p class="text-sm text-blue-800">
-          <span class="font-medium">Admin Note:</span> Financial records can be edited through the Django admin panel.
-        </p>
-        <a href="{% url 'admin:students_financialrecord_changelist' %}" class="mt-2 inline-block px-4 py-2 bg-academy text-white rounded-lg hover:bg-red-700 transition">
-          Manage Financial Records
-        </a>
+        <div class="rounded-3xl border border-slate-200 p-4">
+          <h3 class="text-sm uppercase text-slate-500">Academic Average</h3>
+          <p class="mt-4 text-3xl font-semibold text-slate-900">{{ average_grade|floatformat:2 }}%</p>
+        </div>
       </div>
+    </div>
+    <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+      <h2 class="text-xl font-semibold mb-5">Profile Information</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm text-slate-500">Name</p>
+          <p class="text-lg font-medium">{{ profile.user.get_full_name }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-slate-500">Student ID</p>
+          <p class="text-lg font-medium">{{ profile.student_id }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-slate-500">Class</p>
+          <p class="text-lg font-medium">{{ profile.current_class }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h2 class="text-2xl font-semibold">Financial Records</h2>
+        <p class="mt-2 text-sm text-slate-500">Filter by term, year, or balance status.</p>
+      </div>
+      <form method="get" class="grid gap-3 sm:grid-cols-3">
+        <select name="term" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700">
+          <option value="">All terms</option>
+          <option value="term1" {% if filter_term == 'term1' %}selected{% endif %}>Term 1</option>
+          <option value="term2" {% if filter_term == 'term2' %}selected{% endif %}>Term 2</option>
+          <option value="term3" {% if filter_term == 'term3' %}selected{% endif %}>Term 3</option>
+        </select>
+        <input type="number" name="year" placeholder="Year" value="{{ filter_year }}" class="rounded-2xl border border-slate-200 px-4 py-3 text-slate-700" />
+        <select name="status" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700">
+          <option value="">Any status</option>
+          <option value="overdue" {% if filter_status == 'overdue' %}selected{% endif %}>Overdue</option>
+          <option value="balanced" {% if filter_status == 'balanced' %}selected{% endif %}>Balanced</option>
+        </select>
+      </form>
+    </div>
+
+    {% if financial_records %}
+      <div class="overflow-x-auto mt-6">
+        <table class="w-full border-collapse text-left text-sm text-slate-700">
+          <thead>
+            <tr class="bg-slate-900 text-white">
+              <th class="border border-slate-200 px-4 py-3">Term</th>
+              <th class="border border-slate-200 px-4 py-3">Year</th>
+              <th class="border border-slate-200 px-4 py-3">Due Date</th>
+              <th class="border border-slate-200 px-4 py-3">Transport Paid</th>
+              <th class="border border-slate-200 px-4 py-3">Tuition Paid</th>
+              <th class="border border-slate-200 px-4 py-3">Balance</th>
+              <th class="border border-slate-200 px-4 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in financial_records %}
+              <tr class="hover:bg-slate-50">
+                <td class="border border-slate-200 px-4 py-3">{{ record.get_term_display }}</td>
+                <td class="border border-slate-200 px-4 py-3">{{ record.year }}</td>
+                <td class="border border-slate-200 px-4 py-3">{{ record.due_date|default:'—' }}</td>
+                <td class="border border-slate-200 px-4 py-3 text-right">{{ record.transport_paid|floatformat:2 }}</td>
+                <td class="border border-slate-200 px-4 py-3 text-right">{{ record.tuition_paid|floatformat:2 }}</td>
+                <td class="border border-slate-200 px-4 py-3 text-right">{{ record.total_balance|floatformat:2 }}</td>
+                <td class="border border-slate-200 px-4 py-3">
+                  {% if record.total_balance == 0 %}
+                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-semibold text-emerald-800">Paid</span>
+                  {% elif record.is_overdue %}
+                    <span class="rounded-full bg-rose-100 px-3 py-1 text-[10px] font-semibold text-rose-800">Overdue</span>
+                  {% else %}
+                    <span class="rounded-full bg-yellow-100 px-3 py-1 text-[10px] font-semibold text-amber-800">Open</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="mt-6 text-slate-600">No financial records match your filter.</p>
+    {% endif %}
+  </div>
+
+  <div class="grid gap-6 xl:grid-cols-2">
+    <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+      <h2 class="text-2xl font-semibold mb-4">Termly Summary Report</h2>
+      {% if term_summaries %}
+        <div class="space-y-4">
+          {% for summary in term_summaries %}
+            <div class="rounded-3xl border border-slate-200 p-4">
+              <div class="flex items-center justify-between gap-4">
+                <div>
+                  <p class="text-sm text-slate-500">{{ summary.term|title }} {{ summary.year }}</p>
+                  <p class="text-lg font-semibold text-slate-900">Total Due {{ summary.total_due|floatformat:2 }}</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm text-emerald-700">Paid {{ summary.total_paid|floatformat:2 }}</p>
+                  <p class="text-sm text-rose-700">Balance {{ summary.total_balance|floatformat:2 }}</p>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-slate-600">No term summaries available yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+      <h2 class="text-2xl font-semibold mb-4">Recent Payments</h2>
+      {% if payments %}
+        <div class="space-y-3">
+          {% for payment in payments %}
+            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div class="flex items-center justify-between gap-4">
+                <div>
+                  <p class="font-semibold text-slate-900">{{ payment.payment_method|title }} — {{ payment.amount|floatformat:2 }}</p>
+                  <p class="text-sm text-slate-600">{{ payment.payment_date|date:'M d, Y H:i' }}</p>
+                </div>
+                <a href="{% url 'payment_receipt' payment.receipt_number %}" class="rounded-full bg-slate-900 px-4 py-2 text-xs text-white hover:bg-slate-800">Receipt</a>
+              </div>
+              {% if payment.financial_record %}
+                <p class="mt-2 text-sm text-slate-600">Applied to {{ payment.financial_record.get_term_display }} {{ payment.financial_record.year }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-slate-600">No payment history is available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid gap-6 xl:grid-cols-2">
+    <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+      <h2 class="text-2xl font-semibold mb-4">Attendance Records</h2>
+      {% if attendance_records %}
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-700">
+            <thead>
+              <tr class="bg-slate-900 text-white">
+                <th class="border border-slate-200 px-4 py-3">Date</th>
+                <th class="border border-slate-200 px-4 py-3">Term</th>
+                <th class="border border-slate-200 px-4 py-3">Status</th>
+                <th class="border border-slate-200 px-4 py-3">Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in attendance_records %}
+                <tr class="hover:bg-slate-50">
+                  <td class="border border-slate-200 px-4 py-3">{{ record.date|date:'M d, Y' }}</td>
+                  <td class="border border-slate-200 px-4 py-3">{{ record.term }} {{ record.year }}</td>
+                  <td class="border border-slate-200 px-4 py-3">{{ record.get_status_display }}</td>
+                  <td class="border border-slate-200 px-4 py-3">{{ record.note|default:'-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-slate-600">No attendance records found.</p>
+      {% endif %}
+    </div>
+
+    <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+      <h2 class="text-2xl font-semibold mb-4">Upcoming Exams</h2>
+      {% if exams %}
+        <div class="space-y-4">
+          {% for exam in exams %}
+            <div class="rounded-3xl border border-slate-200 p-4">
+              <p class="font-semibold text-slate-900">{{ exam.subject }} — {{ exam.term|title }} {{ exam.year }}</p>
+              <p class="text-sm text-slate-600">Date: {{ exam.exam_date|date:'M d, Y' }}</p>
+              <p class="mt-2 text-sm text-slate-500">{{ exam.description|default:'No extra details available.' }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-slate-600">No exams are currently scheduled.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+    <h2 class="text-2xl font-semibold mb-4">Grade Report</h2>
+    {% if grades %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-700">
+          <thead>
+            <tr class="bg-slate-900 text-white">
+              <th class="border border-slate-200 px-4 py-3">Subject</th>
+              <th class="border border-slate-200 px-4 py-3">Term</th>
+              <th class="border border-slate-200 px-4 py-3">Percentage</th>
+              <th class="border border-slate-200 px-4 py-3">Cambridge Grade</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for grade in grades %}
+              <tr class="hover:bg-slate-50">
+                <td class="border border-slate-200 px-4 py-3">{{ grade.subject }}</td>
+                <td class="border border-slate-200 px-4 py-3">{{ grade.term }}</td>
+                <td class="border border-slate-200 px-4 py-3">{{ grade.percentage|floatformat:2 }}%</td>
+                <td class="border border-slate-200 px-4 py-3">{{ grade.cambridge_letter_grade }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-slate-600">No grades have been recorded yet.</p>
     {% endif %}
   </div>
 </div>
