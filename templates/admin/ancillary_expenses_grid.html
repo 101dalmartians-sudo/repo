@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ancillary Expense Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-900">
+  <div class="min-h-screen p-6 md:p-10">
+    <div class="mx-auto max-w-7xl rounded-[32px] bg-white p-6 shadow-xl shadow-slate-200 ring-1 ring-slate-200">
+      <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm uppercase tracking-[0.24em] text-slate-500">Admin panel</p>
+          <h1 class="mt-2 text-3xl font-semibold text-slate-900">Ancillary Expenses</h1>
+          <p class="mt-2 max-w-2xl text-slate-600">Track non-tuition school spending with inline editing, category controls, and row-level actions.</p>
+        </div>
+      </div>
+
+      <div id="ancillary-expenses-grid"></div>
+    </div>
+  </div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const categories = [
+      'Cafeteria Supplies',
+      'Transport',
+      'After-School Sports',
+      'Event Booking',
+      'Facility Maintenance',
+    ];
+
+    const initialExpenses = [
+      { id: 1, date: '2026-05-14', receiptId: 'REC-1023', description: 'Soccer equipment refill', category: 'After-School Sports', amount: 225.50 },
+      { id: 2, date: '2026-05-18', receiptId: 'REC-1028', description: 'School bus fuel top-up', category: 'Transport', amount: 112.00 },
+      { id: 3, date: '2026-05-21', receiptId: 'REC-1031', description: 'Cafeteria detergent and napkins', category: 'Cafeteria Supplies', amount: 89.75 },
+    ];
+
+    function AncillaryExpenseGrid() {
+      const [rows, setRows] = useState(initialExpenses);
+      const [editingId, setEditingId] = useState(null);
+      const [draftValues, setDraftValues] = useState({});
+
+      const handleEdit = (row) => {
+        setEditingId(row.id);
+        setDraftValues({ description: row.description, category: row.category });
+      };
+
+      const handleCancel = () => {
+        setEditingId(null);
+        setDraftValues({});
+      };
+
+      const handleChange = (field, value) => {
+        setDraftValues((prev) => ({ ...prev, [field]: value }));
+      };
+
+      const handleSave = (id) => {
+        const updatedRow = rows.map((row) => {
+          if (row.id !== id) return row;
+          return {
+            ...row,
+            description: draftValues.description,
+            category: draftValues.category,
+          };
+        });
+        setRows(updatedRow);
+        console.log('handleSave', id, {
+          description: draftValues.description,
+          category: draftValues.category,
+        });
+        setEditingId(null);
+      };
+
+      const handleDelete = (id) => {
+        setRows((prev) => prev.filter((row) => row.id !== id));
+      };
+
+      return (
+        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-0 text-sm">
+              <thead className="bg-slate-100 text-left text-xs uppercase tracking-[0.18em] text-slate-500">
+                <tr>
+                  <th className="px-4 py-4">Date</th>
+                  <th className="px-4 py-4">Receipt ID</th>
+                  <th className="px-4 py-4">Expense Description</th>
+                  <th className="px-4 py-4">Category</th>
+                  <th className="px-4 py-4">Amount</th>
+                  <th className="px-4 py-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const isEditing = editingId === row.id;
+                  return (
+                    <tr key={row.id} className="group border-t border-slate-200 bg-white transition hover:bg-slate-50">
+                      <td className="whitespace-nowrap px-4 py-4 text-slate-700">{row.date}</td>
+                      <td className="whitespace-nowrap px-4 py-4 text-slate-700">{row.receiptId}</td>
+                      <td className="px-4 py-4">
+                        {isEditing ? (
+                          <input
+                            className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            value={draftValues.description}
+                            onChange={(event) => handleChange('description', event.target.value)}
+                            autoFocus
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span>{row.description}</span>
+                            <span className="opacity-0 transition group-hover:opacity-100">✎</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        {isEditing ? (
+                          <select
+                            className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            value={draftValues.category}
+                            onChange={(event) => handleChange('category', event.target.value)}
+                          >
+                            {categories.map((category) => (
+                              <option key={category} value={category}>{category}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-slate-700">{row.category}</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-4 text-slate-700">${row.amount.toFixed(2)}</td>
+                      <td className="px-4 py-4">
+                        {isEditing ? (
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                              onClick={() => handleSave(row.id)}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                              onClick={handleCancel}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                              onClick={() => handleEdit(row)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+                              onClick={() => handleDelete(row.id)}
+                              aria-label="Delete expense"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('ancillary-expenses-grid')).render(<AncillaryExpenseGrid />);
+  </script>
+</body>
+</html>
