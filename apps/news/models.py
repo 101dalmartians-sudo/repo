@@ -60,3 +60,23 @@ class GalleryImage(models.Model):
 
     def __str__(self):
         return self.title or f"Gallery image {self.pk}"
+
+
+class HomePageContactSection(models.Model):
+    section_title = models.CharField(max_length=150, default='Contact our team')
+    introductory_text = models.TextField(
+        default='Questions, feedback, or partnership requests? We typically respond within 24 business hours.'
+    )
+    phone_number = models.CharField(max_length=50, default='+1 (234) 567-890')
+    email_address = models.EmailField(default='info@aspireacademy.com')
+    physical_address = models.TextField(default='145 Aspire Lane, Cityview, State 54321')
+    availability_hours = models.CharField(max_length=150, default='Mon - Fri: 8:00 AM - 5:00 PM')
+    form_heading = models.CharField(max_length=150, default='Start your inquiry')
+    form_description = models.TextField(default='Share your details and our team will get back to you soon.')
+
+    class Meta:
+        verbose_name = 'Home Page Contact Section'
+        verbose_name_plural = 'Home Page Contact Section'
+
+    def __str__(self):
+        return self.section_title

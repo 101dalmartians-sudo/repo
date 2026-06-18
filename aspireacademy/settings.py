@@ -75,11 +75,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'aspireacademy.wsgi.application'
 
+# Render Persistent Disk mount point. Data stored under /data survives redeploys,
+# unlike the ephemeral application filesystem.
+PERSISTENT_ROOT = Path('/data')
+
 # Database
 DATABASES = {
     'default': {
         'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.sqlite3'),
-        'NAME': os.environ.get('DATABASE_NAME', BASE_DIR / 'db.sqlite3'),
+        # Default SQLite location on Render Persistent Disk to prevent data loss.
+        'NAME': os.environ.get('DATABASE_NAME', PERSISTENT_ROOT / 'db.sqlite3'),
     }
 }
 
@@ -109,7 +114,9 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'accounts_home'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# User-uploaded files must be persisted across deploys, so store media on
+# the Render Persistent Disk.
+MEDIA_ROOT = PERSISTENT_ROOT / 'media'
 
 # Security settings recommended for production
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

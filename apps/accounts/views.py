@@ -13,7 +13,7 @@ from django.utils import timezone
 from apps.students.models import StudentProfile, FinancialRecord, Payment, AttendanceRecord
 from apps.teachers.models import TeacherProfile
 from apps.notifications.models import Notification
-from apps.news.models import News, GalleryImage
+from apps.news.models import News, GalleryImage, HomePageContactSection
 from apps.grades.models import Grade
 
 
@@ -43,9 +43,11 @@ def home(request):
     if not request.user.is_authenticated:
         news = News.objects.all().order_by('-created_at')[:5]
         gallery_images = GalleryImage.objects.filter(active=True).order_by('order', '-created_at')[:8]
+        contact_section = HomePageContactSection.objects.first() or HomePageContactSection()
         return render(request, 'home.html', {
             'news': news,
             'gallery_images': gallery_images,
+            'contact_section': contact_section,
             'notifications_count': 0,
         })
 

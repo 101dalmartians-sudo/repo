@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import GalleryImage, News, NewsImage, NewsDocument
+from .models import GalleryImage, HomePageContactSection, News, NewsImage, NewsDocument
 
 
 class NewsImageInline(admin.TabularInline):
@@ -26,3 +26,9 @@ class GalleryImageAdmin(admin.ModelAdmin):
     list_filter = ['active']
     search_fields = ['title', 'caption']
     ordering = ['order', '-created_at']
+
+
+@admin.register(HomePageContactSection)
+class HomePageContactSectionAdmin(admin.ModelAdmin):
+    list_display = ['section_title', 'phone_number', 'email_address']
+    search_fields = ['section_title', 'introductory_text', 'email_address', 'phone_number']

@@ -75,14 +75,15 @@ def profile_detail(request):
         )
 
     payments = Payment.objects.filter(student=profile).order_by('-payment_date')[:10]
-    attendance = AttendanceRecord.objects.filter(student=profile).order_by('-date')[:10]
+    attendance_queryset = AttendanceRecord.objects.filter(student=profile).order_by('-date')
+    attendance = attendance_queryset[:10]
     exams = ExamSchedule.objects.order_by('exam_date')[:10]
     grades = Grade.objects.filter(student=profile).order_by('term', 'subject')
     average_grade = grades.aggregate(avg=Avg('percentage'))['avg'] or Decimal('0.00')
     attendance_summary = {
-        'present': attendance.filter(status='present').count(),
-        'absent': attendance.filter(status='absent').count(),
-        'late': attendance.filter(status='late').count(),
+        'present': attendance_queryset.filter(status='present').count(),
+        'absent': attendance_queryset.filter(status='absent').count(),
+        'late': attendance_queryset.filter(status='late').count(),
     }
     student_summary = profile.get_balance_summary()
     term_summaries = profile.get_term_summaries()

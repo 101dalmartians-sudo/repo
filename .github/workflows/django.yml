@@ -2,13 +2,15 @@ name: Django CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ "main" ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
 
     strategy:
       matrix:
@@ -25,8 +27,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run migrations
-        env:
-          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
         run: |
           python manage.py migrate --noinput
       - name: Run Django checks

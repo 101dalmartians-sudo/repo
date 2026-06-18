@@ -72,75 +72,50 @@
       {% endif %}
     </div>
 
-    <div class="rounded-2xl bg-white p-6 shadow">
-      <h2 class="text-2xl font-semibold">Contact our team</h2>
-      <div class="mt-6 grid gap-6 sm:grid-cols-2">
-        <div class="space-y-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-          <div>
-            <p class="text-sm uppercase tracking-[0.24em] text-slate-500">Get in touch</p>
-            <h3 class="mt-3 text-xl font-semibold text-slate-900">Questions, feedback, or partnership requests?</h3>
-            <p class="mt-2 text-sm leading-6 text-slate-600">We typically respond within 24 business hours. Reach out and our admissions team will connect with you soon.</p>
-          </div>
+    <div class="rounded-2xl bg-white p-5 shadow md:p-6">
+      <h2 class="text-2xl font-semibold">{{ contact_section.section_title }}</h2>
+      <div class="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
+          <p class="text-sm leading-6 text-slate-600">{{ contact_section.introductory_text }}</p>
 
-          <div class="space-y-4">
-            <div class="flex items-start gap-3 rounded-3xl bg-white p-4 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-18 8h18" />
-              </svg>
-              <div>
-                <p class="text-sm font-semibold text-slate-900">Phone</p>
-                <a href="tel:+1234567890" class="text-sm text-slate-600 transition hover:text-slate-900">+1 (234) 567-890</a>
-              </div>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <div class="rounded-2xl bg-white p-3 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</p>
+              <a href="tel:{{ contact_section.phone_number|cut:' ' }}" class="mt-1 block text-sm text-slate-700 transition hover:text-slate-900">{{ contact_section.phone_number }}</a>
             </div>
 
-            <div class="flex items-start gap-3 rounded-3xl bg-white p-4 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 01-8 0m8 0a4 4 0 00-8 0M12 16v6m-6-6h12" />
-              </svg>
-              <div>
-                <p class="text-sm font-semibold text-slate-900">Email</p>
-                <a href="mailto:info@aspireacademy.com" class="text-sm text-slate-600 transition hover:text-slate-900">info@aspireacademy.com</a>
-              </div>
+            <div class="rounded-2xl bg-white p-3 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
+              <a href="mailto:{{ contact_section.email_address }}" class="mt-1 block text-sm break-all text-slate-700 transition hover:text-slate-900">{{ contact_section.email_address }}</a>
             </div>
 
-            <div class="flex items-start gap-3 rounded-3xl bg-white p-4 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22s8-4.5 8-10.5S15.314 2 12 2 4 6.5 4 11.5 12 22 12 22z" />
-              </svg>
-              <div>
-                <p class="text-sm font-semibold text-slate-900">Address</p>
-                <p class="text-sm text-slate-600">145 Aspire Lane, Cityview, State 54321</p>
-              </div>
+            <div class="rounded-2xl bg-white p-3 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Address</p>
+              <p class="mt-1 text-sm text-slate-700">{{ contact_section.physical_address }}</p>
             </div>
 
-            <div class="flex items-start gap-3 rounded-3xl bg-white p-4 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <div>
-                <p class="text-sm font-semibold text-slate-900">Availability</p>
-                <p class="text-sm text-slate-600">Mon - Fri: 8:00 AM - 5:00 PM</p>
-              </div>
+            <div class="rounded-2xl bg-white p-3 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Availability</p>
+              <p class="mt-1 text-sm text-slate-700">{{ contact_section.availability_hours }}</p>
             </div>
           </div>
         </div>
 
-        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
-          <p class="text-sm uppercase tracking-[0.24em] text-slate-500">Send us a message</p>
-          <h3 class="mt-2 text-xl font-semibold text-slate-900">Start your inquiry</h3>
-          <form id="contact-home-form" class="mt-6 space-y-4" onsubmit="handleSubmit(event)">
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
+          <h3 class="text-lg font-semibold text-slate-900">{{ contact_section.form_heading }}</h3>
+          <p class="mt-1 text-sm text-slate-600">{{ contact_section.form_description }}</p>
+          <form id="contact-home-form" class="mt-4 grid gap-3" onsubmit="handleSubmit(event)">
             <div>
-              <label for="fullName" class="mb-2 block text-sm font-medium text-slate-700">Full Name</label>
-              <input id="fullName" name="fullName" type="text" required class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Your full name" />
+              <label for="fullName" class="mb-1 block text-sm font-medium text-slate-700">Full Name</label>
+              <input id="fullName" name="fullName" type="text" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Your full name" />
             </div>
             <div>
-              <label for="email" class="mb-2 block text-sm font-medium text-slate-700">Email Address</label>
-              <input id="email" name="email" type="email" required class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="you@example.com" />
+              <label for="email" class="mb-1 block text-sm font-medium text-slate-700">Email Address</label>
+              <input id="email" name="email" type="email" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="you@example.com" />
             </div>
             <div>
-              <label for="subject" class="mb-2 block text-sm font-medium text-slate-700">Subject / Reason</label>
-              <select id="subject" name="subject" required class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+              <label for="subject" class="mb-1 block text-sm font-medium text-slate-700">Subject / Reason</label>
+              <select id="subject" name="subject" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                 <option value="General Inquiry">General Inquiry</option>
                 <option value="Support">Support</option>
                 <option value="Partnerships">Partnerships</option>
@@ -148,16 +123,14 @@
               </select>
             </div>
             <div>
-              <label for="message" class="mb-2 block text-sm font-medium text-slate-700">Message</label>
-              <textarea id="message" name="message" rows="4" required class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Tell us how we can help"></textarea>
+              <label for="message" class="mb-1 block text-sm font-medium text-slate-700">Message</label>
+              <textarea id="message" name="message" rows="3" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Tell us how we can help"></textarea>
             </div>
-            <div class="pt-1">
-              <button type="submit" class="w-full rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300">Send Message</button>
-            </div>
+            <button type="submit" class="mt-1 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300">Send Message</button>
           </form>
         </div>
       </div>
-      <p class="mt-4 text-xs text-slate-500">Admin editable contact section: update details from the admin panel or content settings.</p>
+      <p class="mt-3 text-xs text-slate-500">This section is managed from Django admin.</p>
       <script>
         function handleSubmit(e) {
           e.preventDefault();
