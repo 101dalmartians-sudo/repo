@@ -23,7 +23,14 @@ if not SECRET_KEY:
         raise ImproperlyConfigured('The DJANGO_SECRET_KEY environment variable must be set in production.')
 
 # Allow hosts configured via environment (comma-separated), with sensible defaults.
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,aspire-portal.onrender.com').split(',')
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        'DJANGO_ALLOWED_HOSTS',
+        '127.0.0.1,localhost,aspire-portal.onrender.com',
+    ).split(',')
+    if host.strip()
+]
 
 # Application definition
 INSTALLED_APPS = [
