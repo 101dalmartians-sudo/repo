@@ -26,7 +26,7 @@ if not SECRET_KEY:
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get(
-        'DJANGO_ALLOWED_HOSTS',
+        'ALLOWED_HOSTS',
         '127.0.0.1,localhost,aspire-portal.onrender.com',
     ).split(',')
     if host.strip()
