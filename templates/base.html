@@ -43,10 +43,10 @@
             <div class="text-sm">
                 {% if request.user.is_authenticated %}
                     <span class="mr-4">{{ request.user.get_full_name|default:request.user.username }}</span>
-                    <a href="{% url 'logout' %}" class="rounded-lg bg-white px-4 py-2 text-academy shadow-sm hover:bg-slate-100">Sign out</a>
+                    <a href="{% url 'accounts:logout' %}" class="rounded-lg bg-white px-4 py-2 text-academy shadow-sm hover:bg-slate-100">Sign out</a>
                 {% else %}
-                    <a href="{% url 'login' %}" class="rounded-lg bg-white px-4 py-2 text-academy shadow-sm hover:bg-slate-100 mr-2">Login</a>
-                    <a href="{% url 'signup' %}" class="rounded-lg bg-white px-4 py-2 text-academy shadow-sm hover:bg-slate-100">Sign up</a>
+                    <a href="{% url 'accounts:login' %}" class="rounded-lg bg-white px-4 py-2 text-academy shadow-sm hover:bg-slate-100 mr-2">Login</a>
+                    <a href="{% url 'accounts:signup' %}" class="rounded-lg bg-white px-4 py-2 text-academy shadow-sm hover:bg-slate-100">Sign up</a>
                 {% endif %}
             </div>
             {% endif %}

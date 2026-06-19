@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'apps.notifications',
     'apps.calendarapp',
     'apps.news',
+    'apps.finance',
 ]
 
 MIDDLEWARE = [
@@ -110,8 +111,8 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'accounts_home'
+LOGIN_URL = 'accounts:login'
+LOGIN_REDIRECT_URL = 'accounts:accounts_home'
 
 MEDIA_URL = '/media/'
 # User-uploaded files must be persisted across deploys, so store media on

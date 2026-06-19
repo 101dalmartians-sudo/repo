@@ -31,7 +31,7 @@ def index(request):
 def upload_assignment(request):
     if not hasattr(request.user, 'teacher_profile'):
         messages.error(request, 'Only teacher accounts may upload assignments.')
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     if request.method == 'POST':
         form = AssignmentForm(request.POST, request.FILES)

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="mx-auto max-w-3xl rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
@@ -25,11 +26,37 @@
     </div>
 
     <div class="mt-8 grid gap-4 sm:grid-cols-2">
-        <a href="{% url 'admin_approvals' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
+        <a href="{% url 'finance:finance_dashboard' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300 sm:col-span-2">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-lg font-semibold">Finance</p>
+                    <p class="mt-2 text-sm text-slate-600">Budget oversight, expenses, profit and loss, and monthly reports for administrators only.</p>
+                </div>
+                <div class="grid gap-2 text-right text-sm text-slate-600 sm:grid-cols-2 sm:text-left">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Budget</p>
+                        <p class="text-base font-semibold text-slate-900">{{ total_budget|floatformat:2 }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Expenses</p>
+                        <p class="text-base font-semibold text-slate-900">{{ total_admin_expenses|floatformat:2 }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Remaining</p>
+                        <p class="text-base font-semibold text-slate-900">{{ finance_remaining_budget|floatformat:2 }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Net P/L</p>
+                        <p class="text-base font-semibold {% if finance_net_profit >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">{{ finance_net_profit|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+        </a>
+        <a href="{% url 'accounts:admin_approvals' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
             <p class="text-lg font-semibold">Pending approvals</p>
             <p class="mt-2 text-sm text-slate-600">Review and approve admin signup requests.</p>
         </a>
-        <a href="{% url 'manage_profiles' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
+        <a href="{% url 'accounts:manage_profiles' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
             <p class="text-lg font-semibold">Manage student & teacher profiles</p>
             <p class="mt-2 text-sm text-slate-600">Approve, edit, or reject student and teacher accounts.</p>
         </a>

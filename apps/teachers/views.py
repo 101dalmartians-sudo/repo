@@ -9,7 +9,7 @@ from apps.news.models import News
 @login_required
 def dashboard(request):
     if not hasattr(request.user, 'teacher_profile'):
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     teacher_profile = request.user.teacher_profile
     assignments = teacher_profile.assignments.order_by('-created_at')[:5]

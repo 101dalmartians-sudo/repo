@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <p class="text-sm uppercase tracking-[0.24em] text-slate-500">Finance</p>
+                <h1 class="mt-2 text-3xl font-semibold text-slate-900">Profit &amp; Loss</h1>
+                <p class="mt-3 text-slate-600">View monthly, quarterly, and annual financial performance trends.</p>
+            </div>
+            <a href="{% url 'finance:finance_export_excel' 'profit-loss' %}?year={{ selected_year }}" class="inline-flex items-center justify-center rounded-2xl bg-academy px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">Export Profit &amp; Loss</a>
+        </div>
+    </div>
+
+    {% include 'finance/_nav.html' %}
+
+    <div class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p class="text-sm text-slate-500">Annual Income</p><p class="mt-3 text-3xl font-semibold text-emerald-700">{{ annual_totals.income|floatformat:2 }}</p></div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p class="text-sm text-slate-500">Annual Expenses</p><p class="mt-3 text-3xl font-semibold text-slate-900">{{ annual_totals.expenses|floatformat:2 }}</p></div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p class="text-sm text-slate-500">Net Profit / Loss</p><p class="mt-3 text-3xl font-semibold {% if annual_totals.profit >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">{{ annual_totals.profit|floatformat:2 }}</p></div>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-2">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="text-xl font-semibold text-slate-900">Monthly Profit &amp; Loss</h2>
+            <div class="mt-5 overflow-x-auto">
+                <table class="min-w-full text-left text-sm">
+                    <thead class="border-b border-slate-200 text-xs uppercase tracking-[0.2em] text-slate-500"><tr><th class="px-4 py-3">Month</th><th class="px-4 py-3">Income</th><th class="px-4 py-3">Expenses</th><th class="px-4 py-3">Profit/Loss</th></tr></thead>
+                    <tbody>{% for row in monthly_rows %}<tr class="border-b border-slate-100"><td class="px-4 py-4">{{ row.label }}</td><td class="px-4 py-4">{{ row.income|floatformat:2 }}</td><td class="px-4 py-4">{{ row.expenses|floatformat:2 }}</td><td class="px-4 py-4 {% if row.profit >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">{{ row.profit|floatformat:2 }}</td></tr>{% endfor %}</tbody>
+                </table>
+            </div>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="text-xl font-semibold text-slate-900">Quarterly Profit &amp; Loss</h2>
+            <div class="mt-5 overflow-x-auto">
+                <table class="min-w-full text-left text-sm">
+                    <thead class="border-b border-slate-200 text-xs uppercase tracking-[0.2em] text-slate-500"><tr><th class="px-4 py-3">Quarter</th><th class="px-4 py-3">Income</th><th class="px-4 py-3">Expenses</th><th class="px-4 py-3">Profit/Loss</th></tr></thead>
+                    <tbody>{% for row in quarter_rows %}<tr class="border-b border-slate-100"><td class="px-4 py-4">{{ row.label }}</td><td class="px-4 py-4">{{ row.income|floatformat:2 }}</td><td class="px-4 py-4">{{ row.expenses|floatformat:2 }}</td><td class="px-4 py-4 {% if row.profit >= 0 %}text-emerald-700{% else %}text-rose-600{% endif %}">{{ row.profit|floatformat:2 }}</td></tr>{% endfor %}</tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 class="text-xl font-semibold text-slate-900">Financial Performance Over Time</h2>
+        <div class="mt-5 h-80"><canvas id="profitLossChart"></canvas></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const monthlyRows = [
+        {% for row in monthly_rows %}
+        {
+            label: '{{ row.label }}',
+            income: Number('{{ row.income|floatformat:2 }}'),
+            expenses: Number('{{ row.expenses|floatformat:2 }}'),
+            profit: Number('{{ row.profit|floatformat:2 }}')
+        },
+        {% endfor %}
+    ];
+
+    new Chart(document.getElementById('profitLossChart'), {
+        type: 'line',
+        data: {
+            labels: monthlyRows.map((item) => item.label),
+            datasets: [
+                { label: 'Income', data: monthlyRows.map((item) => item.income), borderColor: '#047857', tension: 0.35, fill: false },
+                { label: 'Expenses', data: monthlyRows.map((item) => item.expenses), borderColor: '#a30000', tension: 0.35, fill: false },
+                { label: 'Profit/Loss', data: monthlyRows.map((item) => item.profit), borderColor: '#0f172a', tension: 0.35, fill: false },
+            ],
+        },
+        options: { maintainAspectRatio: false, responsive: true },
+    });
+</script>
+{% endblock %}

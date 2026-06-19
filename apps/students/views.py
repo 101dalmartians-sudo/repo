@@ -22,7 +22,7 @@ from .models import (
 @login_required
 def dashboard(request):
     if not hasattr(request.user, 'student_profile'):
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     profile = request.user.student_profile
     assignments = Assignment.objects.filter(target_class=profile.current_class).order_by('due_date')[:10]
@@ -49,7 +49,7 @@ def dashboard(request):
 @login_required
 def profile_detail(request):
     if not hasattr(request.user, 'student_profile'):
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
     
     profile = request.user.student_profile
     term_filter = request.GET.get('term')

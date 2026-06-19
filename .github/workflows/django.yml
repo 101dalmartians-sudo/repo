@@ -10,7 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      DJANGO_DEBUG: "True"
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY != '' && secrets.DJANGO_SECRET_KEY || 'ci-dev-secret' }}
+      DATABASE_NAME: db.sqlite3
 
     strategy:
       matrix:
@@ -19,19 +21,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
+        id: setup-python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          "${{ steps.setup-python.outputs.python-path }}" -m pip install --upgrade pip
+          "${{ steps.setup-python.outputs.python-path }}" -m pip install -r requirements.txt
       - name: Run migrations
         run: |
-          python manage.py migrate --noinput
+          "${{ steps.setup-python.outputs.python-path }}" manage.py migrate --noinput
       - name: Run Django checks
         run: |
-          python manage.py check
+          "${{ steps.setup-python.outputs.python-path }}" manage.py check
       - name: Run tests
         run: |
-          python manage.py test
+          "${{ steps.setup-python.outputs.python-path }}" manage.py test

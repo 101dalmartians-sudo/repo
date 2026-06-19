@@ -28,7 +28,7 @@
               <input type="hidden" name="profile_id" value="{{ p.id }}">
               <button name="action" value="approve" class="btn">Approve</button>
             </form>
-            <a href="{% url 'edit_profile' 'student' p.id %}" class="btn">Edit</a>
+            <a href="{% url 'accounts:edit_profile' 'student' p.id %}" class="btn">Edit</a>
             <form method="post" style="display:inline">
               {% csrf_token %}
               <input type="hidden" name="type" value="student">
@@ -67,7 +67,7 @@
               <input type="hidden" name="profile_id" value="{{ p.id }}">
               <button name="action" value="approve" class="btn">Approve</button>
             </form>
-            <a href="{% url 'edit_profile' 'teacher' p.id %}" class="btn">Edit</a>
+            <a href="{% url 'accounts:edit_profile' 'teacher' p.id %}" class="btn">Edit</a>
             <form method="post" style="display:inline">
               {% csrf_token %}
               <input type="hidden" name="type" value="teacher">

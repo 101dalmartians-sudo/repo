@@ -21,7 +21,7 @@ def news_detail(request, pk):
 def manage_news(request):
     # admin only - list all news for management
     if not request.user.is_staff:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
     
     news = News.objects.all()
     return render(request, 'news/manage_news.html', {'news': news})
@@ -31,7 +31,7 @@ def manage_news(request):
 def create_news(request):
     # admin only - create new news
     if not request.user.is_staff:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
     
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -75,7 +75,7 @@ def create_news(request):
 def edit_news(request, pk):
     # admin only - edit existing news
     if not request.user.is_staff:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
     
     news = get_object_or_404(News, pk=pk)
     
@@ -125,7 +125,7 @@ def edit_news(request, pk):
 def delete_news(request, pk):
     # admin only - delete news
     if not request.user.is_staff:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
     
     news = get_object_or_404(News, pk=pk)
     news.delete()
@@ -137,7 +137,7 @@ def delete_news(request, pk):
 def delete_image(request, news_pk, image_pk):
     # admin only - delete specific image from news
     if not request.user.is_staff:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
     
     image = get_object_or_404(NewsImage, pk=image_pk, news_id=news_pk)
     image.delete()
@@ -149,7 +149,7 @@ def delete_image(request, news_pk, image_pk):
 def delete_document(request, news_pk, doc_pk):
     # admin only - delete specific document from news
     if not request.user.is_staff:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
     
     document = get_object_or_404(NewsDocument, pk=doc_pk, news_id=news_pk)
     document.delete()

@@ -9,8 +9,9 @@ services:
     volumes:
       - .:/app:rw
     environment:
-      DEBUG: "True"
+      DJANGO_DEBUG: "True"
       DJANGO_SECRET_KEY: "replace-me"
+      DATABASE_NAME: "db.sqlite3"
       DJANGO_EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
       DEFAULT_FROM_EMAIL: noreply@aspireacademy.local
       CELERY_TASK_ALWAYS_EAGER: "True"

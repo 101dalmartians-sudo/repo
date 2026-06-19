@@ -1,0 +1,10 @@
+<div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="flex flex-wrap gap-3">
+        <a href="{% url 'finance:finance_dashboard' %}" class="rounded-full px-4 py-2 text-sm font-semibold transition {% if active_finance_tab == 'dashboard' %}bg-academy text-white{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">Finance Dashboard</a>
+        <a href="{% url 'finance:finance_expenses' %}" class="rounded-full px-4 py-2 text-sm font-semibold transition {% if active_finance_tab == 'expenses' %}bg-academy text-white{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">Expenses</a>
+        <a href="{% url 'finance:finance_budget_management' %}" class="rounded-full px-4 py-2 text-sm font-semibold transition {% if active_finance_tab == 'budget' %}bg-academy text-white{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">Budget Management</a>
+        <a href="{% url 'finance:finance_profit_loss' %}" class="rounded-full px-4 py-2 text-sm font-semibold transition {% if active_finance_tab == 'profit' %}bg-academy text-white{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">Profit &amp; Loss</a>
+        <a href="{% url 'finance:finance_monthly_reports' %}" class="rounded-full px-4 py-2 text-sm font-semibold transition {% if active_finance_tab == 'reports' %}bg-academy text-white{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">Monthly Reports</a>
+        <a href="{% url 'finance:finance_income_management' %}" class="rounded-full px-4 py-2 text-sm font-semibold transition {% if active_finance_tab == 'income' %}bg-academy text-white{% else %}bg-slate-100 text-slate-700 hover:bg-slate-200{% endif %}">Income</a>
+    </div>
+</div>

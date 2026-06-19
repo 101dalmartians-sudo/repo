@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <p class="text-sm uppercase tracking-[0.24em] text-slate-500">Finance</p>
+        <h1 class="mt-2 text-3xl font-semibold text-slate-900">Income Management</h1>
+        <p class="mt-3 text-slate-600">Track manual income sources and monitor student fee income flowing into profit and loss calculations.</p>
+    </div>
+
+    {% include 'finance/_nav.html' %}
+
+    <div class="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="text-xl font-semibold text-slate-900">Record Income</h2>
+            <form method="post" class="mt-5 space-y-4">
+                {% csrf_token %}
+                {% for field in income_form %}
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-slate-700">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endfor %}
+                <button type="submit" class="w-full rounded-2xl bg-academy px-4 py-3 text-sm font-semibold text-white">Save Income</button>
+            </form>
+        </div>
+        <div class="space-y-6">
+            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-xl font-semibold text-slate-900">Manual Income Sources</h2>
+                <div class="mt-5 overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="border-b border-slate-200 text-xs uppercase tracking-[0.2em] text-slate-500"><tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Source</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Recorded By</th></tr></thead>
+                        <tbody>
+                            {% for income in manual_income %}
+                            <tr class="border-b border-slate-100"><td class="px-4 py-4">{{ income.date }}</td><td class="px-4 py-4">{{ income.get_source_display }}</td><td class="px-4 py-4">{{ income.amount|floatformat:2 }}</td><td class="px-4 py-4">{{ income.recorded_by.username|default:'-' }}</td></tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">No manual income has been recorded yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-xl font-semibold text-slate-900">School Fees Feed</h2>
+                <div class="mt-5 overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="border-b border-slate-200 text-xs uppercase tracking-[0.2em] text-slate-500"><tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Student</th><th class="px-4 py-3">Receipt</th><th class="px-4 py-3">Amount</th></tr></thead>
+                        <tbody>
+                            {% for payment in school_fee_income %}
+                            <tr class="border-b border-slate-100"><td class="px-4 py-4">{{ payment.payment_date|date:'Y-m-d' }}</td><td class="px-4 py-4">{{ payment.student.user.username }}</td><td class="px-4 py-4">{{ payment.receipt_number }}</td><td class="px-4 py-4">{{ payment.amount|floatformat:2 }}</td></tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">No school fee income recorded yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

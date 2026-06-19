@@ -14,14 +14,14 @@ def index(request):
         return redirect('grades_entry')
     if hasattr(request.user, 'student_profile'):
         return redirect('grades_student_view')
-    return redirect('accounts_home')
+    return redirect('accounts:accounts_home')
 
 
 @login_required
 def entry(request):
     if not hasattr(request.user, 'teacher_profile'):
         messages.error(request, 'Only teacher accounts may enter grades.')
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     students = []
     form = GradeEntrySelectionForm(request.POST or request.GET or None)
@@ -63,7 +63,7 @@ def entry(request):
 @login_required
 def student_view(request):
     if not hasattr(request.user, 'student_profile'):
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     grades = Grade.objects.filter(student=request.user.student_profile).order_by('subject', 'term')
     average = grades.aggregate(avg=Avg('percentage'))['avg'] or 0

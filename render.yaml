@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: aspire-portal
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn aspireacademy.wsgi:application
+    healthCheckPath: /
+    autoDeploy: true
+    disk:
+      name: aspire-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "aspire-portal.onrender.com"
+      - key: DATABASE_NAME
+        value: /data/db.sqlite3
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "False"
+    preDeployCommand: python manage.py migrate --noinput

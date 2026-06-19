@@ -10,6 +10,7 @@ from decimal import Decimal
 from django.db.models import F, Q, Sum
 from django.utils import timezone
 
+from apps.finance.models import Budget, Expense, Income
 from apps.students.models import StudentProfile, FinancialRecord, Payment, AttendanceRecord
 from apps.teachers.models import TeacherProfile
 from apps.notifications.models import Notification
@@ -19,7 +20,7 @@ from apps.grades.models import Grade
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -27,7 +28,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('accounts_home')
+            return redirect('accounts:accounts_home')
         messages.error(request, 'Invalid username or password.')
 
     return render(request, 'accounts/login.html')
@@ -35,7 +36,7 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    return redirect('login')
+    return redirect('accounts:login')
 
 
 def home(request):
@@ -74,17 +75,17 @@ def home(request):
         return redirect('students_dashboard')
     if role == 'teacher':
         return redirect('teachers_dashboard')
-    return redirect('admin_dashboard')
+    return redirect('accounts:admin_dashboard')
 
 
 @login_required
 def admin_dashboard(request):
     if not hasattr(request.user, 'admin_profile'):
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     admin_profile = request.user.admin_profile
     if not admin_profile.approved:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     total_students = StudentProfile.objects.filter(approved=True).count()
     total_fees_collected = Payment.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
@@ -97,6 +98,12 @@ def admin_dashboard(request):
     attendance_total = AttendanceRecord.objects.count() or 1
     attendance_percentage = (attendance_rate / attendance_total) * 100 if attendance_total else 0
     overdue_accounts = outstanding_records.filter(due_date__lt=timezone.now().date()).count()
+    total_budget = Budget.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_admin_expenses = Expense.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_other_income = Income.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_income = total_fees_collected + total_other_income
+    finance_remaining_budget = total_budget - total_admin_expenses
+    finance_net_profit = total_income - total_admin_expenses
 
     return render(request, 'accounts/admin_dashboard.html', {
         'admin_profile': admin_profile,
@@ -107,12 +114,16 @@ def admin_dashboard(request):
         'term_income': term_income,
         'attendance_percentage': attendance_percentage,
         'overdue_accounts': overdue_accounts,
+        'total_budget': total_budget,
+        'total_admin_expenses': total_admin_expenses,
+        'finance_remaining_budget': finance_remaining_budget,
+        'finance_net_profit': finance_net_profit,
     })
 
 
 def signup_view(request):
     if request.user.is_authenticated:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
@@ -149,7 +160,7 @@ def signup_view(request):
                 else:
                     AdminProfile.objects.create(user=user)
             # skip email verification flow; new accounts await admin approval if not auto-approved
-            return redirect('accounts_home')
+            return redirect('accounts:accounts_home')
 
     return render(request, 'accounts/signup.html')
 
@@ -160,7 +171,7 @@ def signup_view(request):
 def admin_approvals(request):
     # simple admin approvals page that lists pending admin profiles for approval
     if not request.user.is_staff:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     from .models import AdminProfile
     pending = AdminProfile.objects.filter(approved=False)
@@ -195,7 +206,7 @@ def admin_approvals(request):
 def manage_profiles(request):
     # allow admins to view and approve/reject student and teacher profiles
     if not request.user.is_staff:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     pending_students = StudentProfile.objects.filter(approved=False)
     pending_teachers = TeacherProfile.objects.filter(approved=False)
@@ -243,7 +254,7 @@ def manage_profiles(request):
                 )
             messages.success(request, f'Rejected and removed {username}')
 
-        return redirect('manage_profiles')
+        return redirect('accounts:manage_profiles')
 
     return render(request, 'accounts/manage_profiles.html', {
         'pending_students': pending_students,
@@ -254,18 +265,18 @@ def manage_profiles(request):
 @login_required
 def edit_profile(request, profile_type, profile_id):
     if not request.user.is_staff:
-        return redirect('accounts_home')
+        return redirect('accounts:accounts_home')
 
     if profile_type == 'student':
         try:
             prof = StudentProfile.objects.get(pk=profile_id)
         except StudentProfile.DoesNotExist:
-            return redirect('manage_profiles')
+            return redirect('accounts:manage_profiles')
     else:
         try:
             prof = TeacherProfile.objects.get(pk=profile_id)
         except TeacherProfile.DoesNotExist:
-            return redirect('manage_profiles')
+            return redirect('accounts:manage_profiles')
 
     if request.method == 'POST':
         # allow editing simple fields
@@ -294,6 +305,6 @@ def edit_profile(request, profile_type, profile_id):
             )
 
         messages.success(request, 'Profile updated')
-        return redirect('manage_profiles')
+        return redirect('accounts:manage_profiles')
 
     return render(request, 'accounts/edit_profile.html', {'profile': prof, 'type': profile_type})

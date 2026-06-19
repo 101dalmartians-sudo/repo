@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('apps.accounts.urls')),
+    path('', include(('apps.accounts.urls', 'accounts'), namespace='accounts')),
     path('students/', include('apps.students.urls')),
     path('teachers/', include('apps.teachers.urls')),
     path('assignments/', include('apps.assignments.urls')),
@@ -13,6 +13,7 @@ urlpatterns = [
     path('notifications/', include('apps.notifications.urls')),
     path('calendar/', include('apps.calendarapp.urls')),
     path('news/', include('apps.news.urls')),
+    path('finance/', include(('apps.finance.urls', 'finance'), namespace='finance')),
 ]
 
 # Serve media files in development
