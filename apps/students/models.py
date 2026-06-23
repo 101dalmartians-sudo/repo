@@ -6,6 +6,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import JSONField
 from django.utils import timezone
@@ -73,12 +74,18 @@ class FinancialRecord(models.Model):
     # Transport fee
     transport_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     transport_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    transport_balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    transport_balance = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+    )
     
     # School tuition
     school_tuition = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     tuition_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    tuition_balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    tuition_balance = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+    )
     
     # Synchronization and tracking fields
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -167,7 +174,10 @@ class Payment(models.Model):
 
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='payments')
     financial_record = models.ForeignKey(FinancialRecord, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+    )
     payment_method = models.CharField(max_length=32, choices=PAYMENT_METHOD_CHOICES, default='cash')
     payment_date = models.DateTimeField(default=timezone.now)
     receipt_number = models.CharField(max_length=64, unique=True, editable=False)

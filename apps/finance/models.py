@@ -53,9 +53,18 @@ class Budget(models.Model):
     class Meta:
         ordering = ['-year', 'month', 'category__name']
         constraints = [
+            # Annual budgets: month is always NULL — use a partial index so
+            # PostgreSQL correctly treats two NULL months as a collision.
+            models.UniqueConstraint(
+                fields=['category', 'year'],
+                condition=models.Q(period_type='annual', month__isnull=True),
+                name='unique_annual_budget_per_category_year',
+            ),
+            # Monthly budgets: month has a concrete value — standard unique works.
             models.UniqueConstraint(
                 fields=['category', 'period_type', 'year', 'month'],
-                name='unique_budget_per_period',
+                condition=models.Q(period_type='monthly'),
+                name='unique_monthly_budget_per_category_period',
             ),
         ]
 
