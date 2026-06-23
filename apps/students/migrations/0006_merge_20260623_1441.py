@@ -7,7 +7,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('students', '0002_financial_synchronization'),
-        ('students', '0005_payment_attendance_exams_auditlog'),
     ]
 
     operations = [
