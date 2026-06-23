@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'apps.calendarapp',
     'apps.news',
     'apps.finance',
+    'apps.reports',
 ]
 
 MIDDLEWARE = [
@@ -174,4 +175,77 @@ LOGGING = {
         'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
     },
     'root': {'handlers': ['console'], 'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO')},
+}
+
+# ============================================================================
+# Cache Configuration - 5-minute TTL for dashboards
+# ============================================================================
+CACHES = {
+    'default': {
+        'BACKEND': os.environ.get('CACHE_BACKEND', 'django.core.cache.backends.locmem.LocMemCache'),
+        'LOCATION': os.environ.get('CACHE_LOCATION', 'aspire-cache'),
+        'TIMEOUT': int(os.environ.get('CACHE_TIMEOUT', '300')),  # 5 minutes
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
+# For production, use Redis:
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+#         'LOCATION': 'redis://127.0.0.1:6379/1',
+#         'TIMEOUT': 300,
+#     }
+# }
+
+# ============================================================================
+# Celery Beat Scheduled Tasks
+# ============================================================================
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # Financial Tasks
+    'recalculate-financial-status': {
+        'task': 'apps.finance.tasks.recalculate_financial_status',
+        'schedule': 4.0 * 3600,  # Every 4 hours
+    },
+    'check-overdue-accounts': {
+        'task': 'apps.finance.tasks.check_overdue_accounts',
+        'schedule': crontab(hour=9, minute=0),  # Daily at 9 AM
+    },
+    'generate-monthly-financial-reports': {
+        'task': 'apps.finance.tasks.generate_monthly_financial_reports',
+        'schedule': crontab(day_of_month=1, hour=0, minute=0),  # Month-end (1st of next month at midnight)
+    },
+    'refresh-dashboard-cache': {
+        'task': 'apps.finance.tasks.refresh_dashboard_cache',
+        'schedule': 5.0 * 60,  # Every 5 minutes
+    },
+    'audit-financial-consistency': {
+        'task': 'apps.finance.tasks.audit_financial_consistency',
+        'schedule': crontab(hour=0, minute=0),  # Daily at midnight
+    },
+    # Academic Tasks
+    'calculate-class-performance': {
+        'task': 'apps.grades.tasks.calculate_class_performance',
+        'schedule': crontab(hour=23, minute=0),  # Daily at 11 PM
+    },
+    'identify-at-risk-students': {
+        'task': 'apps.grades.tasks.identify_at_risk_students',
+        'schedule': crontab(day_of_week=0, hour=8, minute=0),  # Weekly Monday at 8 AM
+    },
+    'recognize-high-achievers': {
+        'task': 'apps.grades.tasks.recognize_high_achievers',
+        'schedule': crontab(day_of_week=4, hour=10, minute=0),  # Weekly Friday at 10 AM
+    },
+    'generate-term-performance-reports': {
+        'task': 'apps.grades.tasks.generate_term_performance_reports',
+        'schedule': crontab(day_of_month=1, hour=1, minute=0),  # Month-end at 1 AM
+    },
+    'notify-exam-approaching': {
+        'task': 'apps.grades.tasks.notify_exam_approaching',
+        'schedule': crontab(hour=7, minute=0),  # Daily at 7 AM
+    },
 }

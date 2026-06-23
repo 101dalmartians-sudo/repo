@@ -58,6 +58,13 @@ class FinancialRecord(models.Model):
         ('term3', 'Term 3'),
     ]
     
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('partial', 'Partially Paid'),
+        ('paid', 'Fully Paid'),
+        ('overdue', 'Overdue'),
+    ]
+    
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='financial_records')
     term = models.CharField(max_length=10, choices=TERM_CHOICES)
     year = models.IntegerField()
@@ -73,6 +80,12 @@ class FinancialRecord(models.Model):
     tuition_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     tuition_balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     
+    # Synchronization and tracking fields
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_financial_records')
+    last_payment_date = models.DateTimeField(null=True, blank=True)
+    payment_count = models.PositiveIntegerField(default=0)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -82,6 +95,20 @@ class FinancialRecord(models.Model):
     
     def __str__(self):
         return f"{self.student} - {self.get_term_display()} {self.year}"
+    
+    def update_status(self):
+        """Synchronize status field based on current balances and due date"""
+        from django.utils import timezone as tz
+        total_balance = self.total_balance
+        
+        if total_balance == 0:
+            self.status = 'paid'
+        elif total_balance < self.total_fee:
+            self.status = 'partial'
+        elif self.due_date and self.due_date < tz.now().date() and total_balance > 0:
+            self.status = 'overdue'
+        else:
+            self.status = 'pending'
     
     @property
     def total_fee(self):
@@ -131,6 +158,12 @@ class Payment(models.Model):
         ('card', 'Card'),
         ('mobile_money', 'Mobile money'),
     ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('reversed', 'Reversed'),
+    ]
 
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='payments')
     financial_record = models.ForeignKey(FinancialRecord, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
@@ -139,6 +172,20 @@ class Payment(models.Model):
     payment_date = models.DateTimeField(default=timezone.now)
     receipt_number = models.CharField(max_length=64, unique=True, editable=False)
     note = models.TextField(blank=True)
+    
+    # Approval tracking
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='approved')
+    is_approved = models.BooleanField(default=True)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_payments')
+    approved_at = models.DateTimeField(null=True, blank=True)
+    
+    # Reversal tracking
+    reversal_of = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='reversals')
+    is_reversed = models.BooleanField(default=False)
+    reversal_reason = models.CharField(max_length=255, blank=True)
+    reversed_at = models.DateTimeField(null=True, blank=True)
+    reversed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reversed_payments')
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -151,42 +198,16 @@ class Payment(models.Model):
         is_new = self.pk is None
         if not self.receipt_number:
             self.receipt_number = self.generate_receipt_number()
+        
+        # If this is a new payment and it's approved, mark it as such
+        if is_new and self.is_approved:
+            self.status = 'approved'
+            self.approved_at = timezone.now()
+        
         super().save(*args, **kwargs)
-        if is_new and self.financial_record:
-            remainder = self.financial_record.apply_payment(self.amount)
-            if remainder > 0:
-                self.note = (self.note or '') + f"\nUnapplied amount: {remainder:.2f}"
-                super().save(update_fields=['note'])
-            self.create_notifications()
 
     def generate_receipt_number(self):
         return f"RCPT-{uuid.uuid4().hex[:12].upper()}"
-
-    def create_notifications(self):
-        from apps.notifications.models import Notification
-
-        message = (
-            f"Payment of {self.amount:.2f} received for {self.student}. "
-            f"Receipt: {self.receipt_number}."
-        )
-        Notification.objects.create(recipient=self.student.user, title='Payment received', message=message)
-        if self.student.user.email:
-            self.send_email_notification(message)
-
-        for admin in User.objects.filter(is_staff=True):
-            Notification.objects.create(
-                recipient=admin,
-                title='Student payment recorded',
-                message=f"{self.student.user.username} paid {self.amount:.2f} for {self.financial_record.get_term_display() if self.financial_record else 'unknown term'}.",
-            )
-
-    def send_email_notification(self, message):
-        subject = 'Payment Received'
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@example.com')
-        try:
-            send_mail(subject, message, from_email, [self.student.user.email], fail_silently=True)
-        except Exception:
-            pass
 
 
 class AttendanceRecord(models.Model):
