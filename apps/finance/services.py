@@ -8,7 +8,7 @@ of all financial data across dashboards and reports.
 from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
-from django.db.models import Q, F, Sum
+from django.db.models import Q, F, Sum, Max
 from apps.students.models import FinancialRecord, Payment, StudentProfile
 from apps.notifications.models import Notification
 from django.contrib.auth.models import User
@@ -39,8 +39,6 @@ class FinancialService:
         Returns:
             dict with result status and messages
         """
-        from django.core.cache import cache
-        
         if payment.is_reversed:
             return {
                 'success': False,
@@ -56,34 +54,33 @@ class FinancialService:
             }
         
         try:
-            # Step 1: Apply payment to financial record
+            # Step 1: Ensure payment is approved metadata-wise
             financial_record = payment.financial_record
-            remainder = financial_record.apply_payment(payment.amount)
-            
-            # Step 2: Update payment metadata
-            payment.approved_by = user
-            payment.approved_at = timezone.now()
-            payment.status = 'approved'
+            paid_before = FinancialService.get_effective_payments(
+                financial_record=financial_record
+            ).exclude(pk=payment.pk).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            remaining_capacity = max(financial_record.total_fee - paid_before, Decimal('0.00'))
+            applied_amount = min(Decimal(payment.amount), remaining_capacity)
+            remainder = max(Decimal(payment.amount) - applied_amount, Decimal('0.00'))
+
             payment.is_approved = True
+            payment.status = 'approved'
+            if payment.approved_at is None:
+                payment.approved_at = timezone.now()
+            if user is not None:
+                payment.approved_by = user
             payment.save(update_fields=['approved_by', 'approved_at', 'status', 'is_approved'])
+
+            # Step 2: Recompute record from all approved, non-reversed payments
+            FinancialService.synchronize_financial_record(financial_record, user=user)
             
-            # Step 3: Update financial record status and metadata
-            financial_record.update_status()
-            financial_record.last_payment_date = timezone.now()
-            financial_record.payment_count = financial_record.payments.filter(
-                is_reversed=False
-            ).count()
-            financial_record.updated_by = user
-            financial_record.save(update_fields=[
-                'status', 'last_payment_date', 'payment_count', 'updated_by', 'updated_at'
-            ])
-            
-            # Step 4: Create notifications
+            # Step 3: Create notifications
             FinancialService._create_payment_notifications(payment, financial_record, remainder)
             
-            # Step 5: Invalidate relevant caches
+            # Step 4: Invalidate relevant caches
             FinancialService._invalidate_student_cache(payment.student)
             FinancialService._invalidate_dashboard_cache()
+            FinancialService._invalidate_payment_period_cache(payment.payment_date)
             
             return {
                 'success': True,
@@ -113,8 +110,6 @@ class FinancialService:
         Returns:
             dict with result status
         """
-        from django.core.cache import cache
-        
         if payment.is_reversed:
             return {
                 'success': False,
@@ -132,16 +127,6 @@ class FinancialService:
         try:
             financial_record = payment.financial_record
             
-            # Step 1: Reverse the balance changes
-            financial_record.transport_paid -= payment.amount
-            financial_record.tuition_paid -= payment.amount
-            financial_record.transport_balance = financial_record.transport_fee - financial_record.transport_paid
-            financial_record.tuition_balance = financial_record.school_tuition - financial_record.tuition_paid
-            
-            # Ensure no negative balances
-            financial_record.transport_balance = max(financial_record.transport_balance, Decimal('0.00'))
-            financial_record.tuition_balance = max(financial_record.tuition_balance, Decimal('0.00'))
-            
             # Step 2: Update payment reversal status
             payment.is_reversed = True
             payment.status = 'reversed'
@@ -152,16 +137,8 @@ class FinancialService:
                 'is_reversed', 'status', 'reversed_by', 'reversed_at', 'reversal_reason'
             ])
             
-            # Step 3: Update financial record status
-            financial_record.update_status()
-            financial_record.payment_count = financial_record.payments.filter(
-                is_reversed=False
-            ).count()
-            financial_record.updated_by = user
-            financial_record.save(update_fields=[
-                'transport_paid', 'tuition_paid', 'transport_balance', 'tuition_balance',
-                'status', 'payment_count', 'updated_by', 'updated_at'
-            ])
+            # Step 3: Recompute record from remaining approved, non-reversed payments
+            FinancialService.synchronize_financial_record(financial_record, user=user)
             
             # Step 4: Create reversal notification
             FinancialService._create_reversal_notification(payment, financial_record, reason)
@@ -169,6 +146,7 @@ class FinancialService:
             # Step 5: Invalidate caches
             FinancialService._invalidate_student_cache(payment.student)
             FinancialService._invalidate_dashboard_cache()
+            FinancialService._invalidate_payment_period_cache(payment.payment_date)
             
             return {
                 'success': True,
@@ -197,8 +175,6 @@ class FinancialService:
         Returns:
             dict with result status
         """
-        from django.core.cache import cache
-        
         try:
             # Update the fields
             for field, value in updates.items():
@@ -222,6 +198,9 @@ class FinancialService:
             financial_record.updated_by = user
             financial_record.update_status()
             financial_record.save()
+
+            # Recompute to align balances with all approved payments after fee changes
+            FinancialService.synchronize_financial_record(financial_record, user=user)
             
             # Create notification for significant changes
             if 'transport_fee' in updates or 'school_tuition' in updates:
@@ -257,15 +236,18 @@ class FinancialService:
             dict with summary data
         """
         records = student.financial_records.all()
-        payments = student.payments.filter(is_reversed=False)
+        payments = FinancialService.get_effective_payments(student=student)
         
-        total_due = records.aggregate(total=Sum('total_fee'))['total'] or Decimal('0.00')
+        total_due = records.aggregate(total=Sum(F('transport_fee') + F('school_tuition')))['total'] or Decimal('0.00')
         total_paid = payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        total_balance = records.aggregate(total=Sum('total_balance'))['total'] or Decimal('0.00')
+        total_balance = records.aggregate(total=Sum(F('transport_balance') + F('tuition_balance')))['total'] or Decimal('0.00')
         
         overdue_count = records.filter(
             Q(status='overdue') | 
-            (Q(due_date__lt=timezone.now().date()) & Q(total_balance__gt=0))
+            (
+                Q(due_date__lt=timezone.now().date()) &
+                (Q(transport_balance__gt=0) | Q(tuition_balance__gt=0))
+            )
         ).count()
         
         return {
@@ -289,7 +271,7 @@ class FinancialService:
             dict with dashboard metrics
         """
         total_students = StudentProfile.objects.filter(approved=True).count()
-        total_collected = Payment.objects.filter(is_reversed=False).aggregate(
+        total_collected = FinancialService.get_effective_payments().aggregate(
             total=Sum('amount')
         )['total'] or Decimal('0.00')
         
@@ -322,6 +304,51 @@ class FinancialService:
                 else Decimal('0.00')
             )
         }
+
+    @staticmethod
+    def get_effective_payments(student=None, financial_record=None):
+        """Return payments that should affect balances and reporting."""
+        queryset = Payment.objects.filter(is_approved=True, status='approved', is_reversed=False)
+        if student is not None:
+            queryset = queryset.filter(student=student)
+        if financial_record is not None:
+            queryset = queryset.filter(financial_record=financial_record)
+        return queryset
+
+    @staticmethod
+    @transaction.atomic
+    def synchronize_financial_record(financial_record, user=None):
+        """Rebuild a financial record state from all approved, non-reversed payments."""
+        effective_payments = FinancialService.get_effective_payments(financial_record=financial_record)
+        total_paid = effective_payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+        transport_paid = min(financial_record.transport_fee, total_paid)
+        remaining_after_transport = max(total_paid - financial_record.transport_fee, Decimal('0.00'))
+        tuition_paid = min(financial_record.school_tuition, remaining_after_transport)
+
+        financial_record.transport_paid = transport_paid
+        financial_record.tuition_paid = tuition_paid
+        financial_record.transport_balance = max(financial_record.transport_fee - transport_paid, Decimal('0.00'))
+        financial_record.tuition_balance = max(financial_record.school_tuition - tuition_paid, Decimal('0.00'))
+        financial_record.payment_count = effective_payments.count()
+        financial_record.last_payment_date = effective_payments.aggregate(
+            latest=Max('payment_date')
+        )['latest']
+        financial_record.updated_by = user
+        financial_record.update_status()
+        financial_record.save(update_fields=[
+            'transport_paid',
+            'tuition_paid',
+            'transport_balance',
+            'tuition_balance',
+            'payment_count',
+            'last_payment_date',
+            'status',
+            'updated_by',
+            'updated_at',
+        ])
+
+        return financial_record
     
     @staticmethod
     def _create_payment_notifications(payment, financial_record, remainder):
@@ -408,7 +435,10 @@ class FinancialService:
         cache_keys = [
             f'student_financial_summary_{student.id}',
             f'student_balance_{student.id}',
-            f'student_dashboard_{student.id}'
+            f'student_dashboard_{student.id}',
+            f'student_financial_dashboard_{student.id}',
+            f'student_all_reports_{student.id}',
+            f'student_bi_weekly_reports_{student.id}',
         ]
         cache.delete_many(cache_keys)
     
@@ -419,6 +449,15 @@ class FinancialService:
         cache_keys = [
             'admin_financial_dashboard',
             'admin_dashboard_metrics',
-            'financial_dashboard_summary'
+            'financial_dashboard_summary',
+            'admin_reporting_dashboard',
         ]
         cache.delete_many(cache_keys)
+
+    @staticmethod
+    def _invalidate_payment_period_cache(payment_date):
+        """Invalidate monthly report cache for a payment period."""
+        if not payment_date:
+            return
+        from apps.finance.cache import DashboardCache
+        DashboardCache.invalidate_monthly_summary(payment_date.year, payment_date.month)

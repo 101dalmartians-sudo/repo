@@ -1,15 +1,7 @@
-"""
-Financial Synchronization Signals
-
-Handles automatic synchronization of financial data across dashboards,
-reports, and notifications whenever financial records change.
-"""
+"""Financial Synchronization Signals."""
 
 from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
-from django.db import transaction
-from decimal import Decimal
-from django.utils import timezone
 
 from apps.students.models import Payment, FinancialRecord
 from apps.finance.services import FinancialService
@@ -26,13 +18,29 @@ def synchronize_payment_creation(sender, instance, created, **kwargs):
     - Dashboard cache invalidation
     - Notification creation
     """
-    if created and instance.is_approved and not instance.is_reversed:
-        # New payment - process it
+    if kwargs.get('raw'):
+        return
+
+    if not instance.financial_record:
+        return
+
+    if instance.is_reversed:
+        FinancialService.synchronize_financial_record(instance.financial_record)
+        FinancialService._invalidate_student_cache(instance.student)
+        FinancialService._invalidate_dashboard_cache()
+        FinancialService._invalidate_payment_period_cache(instance.payment_date)
+        return
+
+    if created and instance.is_approved:
         FinancialService.process_payment(instance)
-    elif not created and instance.is_approved and not instance.is_reversed:
-        # Payment updated - reprocess if status changed to approved
-        if instance.financial_record:
-            FinancialService.process_payment(instance)
+        return
+
+    if not created:
+        # Generic update/approval path: fully recompute from effective payments.
+        FinancialService.synchronize_financial_record(instance.financial_record)
+        FinancialService._invalidate_student_cache(instance.student)
+        FinancialService._invalidate_dashboard_cache()
+        FinancialService._invalidate_payment_period_cache(instance.payment_date)
 
 
 @receiver(post_delete, sender=Payment)
@@ -42,9 +50,11 @@ def synchronize_payment_deletion(sender, instance, **kwargs):
     
     Reverses all balance changes and updates dependent records.
     """
-    if instance.financial_record and not instance.is_reversed:
-        # Treat deletion as reversal
-        FinancialService.reverse_payment(instance, None, 'Record deleted')
+    if instance.financial_record:
+        FinancialService.synchronize_financial_record(instance.financial_record)
+        FinancialService._invalidate_student_cache(instance.student)
+        FinancialService._invalidate_dashboard_cache()
+        FinancialService._invalidate_payment_period_cache(instance.payment_date)
 
 
 @receiver(post_save, sender=FinancialRecord)
@@ -57,10 +67,27 @@ def synchronize_financial_record_update(sender, instance, created, **kwargs):
     - Notification to student (if created)
     - Dashboard cache invalidation
     """
-    from django.core.cache import cache
-    
-    # Update status based on current balances
-    instance.update_status()
+    if kwargs.get('raw'):
+        return
+
+    sync_update_fields = {
+        'transport_paid',
+        'tuition_paid',
+        'transport_balance',
+        'tuition_balance',
+        'payment_count',
+        'last_payment_date',
+        'status',
+        'updated_by',
+        'updated_at',
+    }
+    update_fields = kwargs.get('update_fields')
+    if update_fields and set(update_fields).issubset(sync_update_fields):
+        FinancialService._invalidate_student_cache(instance.student)
+        FinancialService._invalidate_dashboard_cache()
+        return
+
+    FinancialService.synchronize_financial_record(instance)
     
     if created:
         # New record - notify student
@@ -89,8 +116,8 @@ def synchronize_financial_record_deletion(sender, instance, **kwargs):
     """
     from django.core.exceptions import ProtectedError
     
-    # Check if there are any payments
-    if instance.payments.filter(is_reversed=False).exists():
+    # Check if there are any active payments
+    if instance.payments.filter(is_approved=True, is_reversed=False).exists():
         # Don't allow deletion - this maintains data integrity
         raise ProtectedError(
             "Cannot delete financial record that has payments. "

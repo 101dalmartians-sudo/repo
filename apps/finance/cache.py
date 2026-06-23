@@ -104,6 +104,8 @@ class DashboardCache:
         payments = Payment.objects.filter(
             payment_date__year=year,
             payment_date__month=month,
+            is_approved=True,
+            status='approved',
             is_reversed=False
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         

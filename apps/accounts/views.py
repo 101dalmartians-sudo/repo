@@ -88,7 +88,11 @@ def admin_dashboard(request):
         return redirect('accounts:accounts_home')
 
     total_students = StudentProfile.objects.filter(approved=True).count()
-    total_fees_collected = Payment.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_fees_collected = Payment.objects.filter(
+        is_approved=True,
+        status='approved',
+        is_reversed=False,
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     outstanding_records = FinancialRecord.objects.filter(Q(transport_balance__gt=0) | Q(tuition_balance__gt=0))
     total_outstanding = outstanding_records.aggregate(total=Sum(F('transport_balance') + F('tuition_balance')))['total'] or Decimal('0.00')
     term_income = FinancialRecord.objects.values('term', 'year').annotate(

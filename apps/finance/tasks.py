@@ -141,6 +141,14 @@ def generate_monthly_financial_reports():
         expense_qs = Expense.objects.filter(date__year=year, date__month=month)
         
         total_income = income_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        school_fee_income = Payment.objects.filter(
+            payment_date__year=year,
+            payment_date__month=month,
+            is_approved=True,
+            status='approved',
+            is_reversed=False,
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        total_income += school_fee_income
         total_expenses = expense_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         
         # Create report
@@ -192,7 +200,11 @@ def generate_student_financial_statements(student_id):
         
         # Get all records and payments
         records = student.financial_records.all().order_by('-year', 'term')
-        payments = student.payments.filter(is_reversed=False).order_by('-payment_date')
+        payments = student.payments.filter(
+            is_approved=True,
+            status='approved',
+            is_reversed=False,
+        ).order_by('-payment_date')
         
         statement = {
             'student': str(student),

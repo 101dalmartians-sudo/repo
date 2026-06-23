@@ -7,6 +7,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from .models import Budget, Expense, Income, MonthlyFinancialReport
+from apps.students.models import Payment
 
 
 BRAND_FILL = PatternFill(fill_type='solid', fgColor='A30000')
@@ -122,6 +123,14 @@ def export_profit_and_loss_workbook(year, filename='profit-loss.xlsx'):
     totals = {'income': Decimal('0.00'), 'expenses': Decimal('0.00')}
     for month in range(1, 13):
         income = Income.objects.filter(date__year=year, date__month=month).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        fee_income = Payment.objects.filter(
+            payment_date__year=year,
+            payment_date__month=month,
+            is_approved=True,
+            status='approved',
+            is_reversed=False,
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        income += fee_income
         expenses = Expense.objects.filter(date__year=year, date__month=month).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         totals['income'] += income
         totals['expenses'] += expenses

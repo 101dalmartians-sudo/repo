@@ -41,7 +41,12 @@ def _status_meta(utilization):
 
 
 def _safe_payment_total(year, month=None):
-    queryset = Payment.objects.filter(payment_date__year=year)
+    queryset = Payment.objects.filter(
+        payment_date__year=year,
+        is_approved=True,
+        status='approved',
+        is_reversed=False,
+    )
     if month is not None:
         queryset = queryset.filter(payment_date__month=month)
     try:
@@ -52,7 +57,11 @@ def _safe_payment_total(year, month=None):
 
 def _safe_payment_feed(limit=25):
     try:
-        return Payment.objects.select_related('student', 'student__user').all()[:limit]
+        return Payment.objects.select_related('student', 'student__user').filter(
+            is_approved=True,
+            status='approved',
+            is_reversed=False,
+        )[:limit]
     except (OperationalError, ProgrammingError):
         return []
 

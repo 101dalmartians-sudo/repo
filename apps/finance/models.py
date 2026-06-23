@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
+from apps.students.models import Payment
 
 
 def current_year():
@@ -160,7 +161,18 @@ class MonthlyFinancialReport(models.Model):
 
     @property
     def total_income(self):
-        return Income.objects.filter(date__year=self.year, date__month=self.month).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        manual_income = Income.objects.filter(
+            date__year=self.year,
+            date__month=self.month,
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        school_fees = Payment.objects.filter(
+            payment_date__year=self.year,
+            payment_date__month=self.month,
+            is_approved=True,
+            status='approved',
+            is_reversed=False,
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        return manual_income + school_fees
 
     @property
     def total_expenses(self):

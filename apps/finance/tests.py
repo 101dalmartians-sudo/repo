@@ -257,6 +257,74 @@ class PaymentSynchronizationTests(TransactionTestCase):
         self.assertEqual(self.record.total_balance, Decimal('0.00'))
         self.assertEqual(self.record.status, 'paid')
 
+    def test_payment_update_recalculates_balances(self):
+        """Updating payment amount recalculates balances from scratch."""
+        payment = Payment.objects.create(
+            student=self.student,
+            financial_record=self.record,
+            amount=Decimal('8000.00'),
+            payment_method='cash',
+            is_approved=True,
+        )
+        FinancialService.process_payment(payment, self.admin)
+
+        payment.amount = Decimal('12000.00')
+        payment.save(update_fields=['amount'])
+
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.total_paid, Decimal('12000.00'))
+        self.assertEqual(self.record.total_balance, Decimal('18000.00'))
+        self.assertEqual(self.record.payment_count, 1)
+
+    def test_pending_to_approved_payment_updates_record(self):
+        """Approval transition should synchronize record balances and metadata."""
+        payment = Payment.objects.create(
+            student=self.student,
+            financial_record=self.record,
+            amount=Decimal('6000.00'),
+            payment_method='cash',
+            is_approved=False,
+            status='pending',
+        )
+
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.total_paid, Decimal('0.00'))
+
+        payment.is_approved = True
+        payment.status = 'approved'
+        payment.save(update_fields=['is_approved', 'status'])
+
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.total_paid, Decimal('6000.00'))
+        self.assertEqual(self.record.payment_count, 1)
+        self.assertIsNotNone(self.record.last_payment_date)
+
+    def test_payment_delete_recalculates_record(self):
+        """Deleting a payment should recompute record aggregates."""
+        payment1 = Payment.objects.create(
+            student=self.student,
+            financial_record=self.record,
+            amount=Decimal('5000.00'),
+            payment_method='cash',
+            is_approved=True,
+        )
+        payment2 = Payment.objects.create(
+            student=self.student,
+            financial_record=self.record,
+            amount=Decimal('7000.00'),
+            payment_method='bank_transfer',
+            is_approved=True,
+        )
+        FinancialService.process_payment(payment1, self.admin)
+        FinancialService.process_payment(payment2, self.admin)
+
+        payment2.delete()
+
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.total_paid, Decimal('5000.00'))
+        self.assertEqual(self.record.total_balance, Decimal('25000.00'))
+        self.assertEqual(self.record.payment_count, 1)
+
 
 class FinancialServiceTests(TestCase):
     """Tests for FinancialService"""
@@ -313,4 +381,48 @@ class FinancialServiceTests(TestCase):
         self.assertEqual(summary['total_paid'], Decimal('5000.00'))
         self.assertEqual(summary['total_balance'], Decimal('55000.00'))
         self.assertEqual(summary['record_count'], 2)
+        self.assertEqual(summary['payment_count'], 1)
+
+    def test_summary_ignores_pending_and_reversed_payments(self):
+        """Only approved, non-reversed payments should count in summaries."""
+        record = FinancialRecord.objects.create(
+            student=self.student1,
+            term='term1',
+            year=2025,
+            transport_fee=Decimal('5000.00'),
+            school_tuition=Decimal('25000.00'),
+            transport_balance=Decimal('5000.00'),
+            tuition_balance=Decimal('25000.00')
+        )
+
+        approved = Payment.objects.create(
+            student=self.student1,
+            financial_record=record,
+            amount=Decimal('4000.00'),
+            payment_method='cash',
+            is_approved=True,
+            status='approved',
+        )
+        pending = Payment.objects.create(
+            student=self.student1,
+            financial_record=record,
+            amount=Decimal('2000.00'),
+            payment_method='cash',
+            is_approved=False,
+            status='pending',
+        )
+        reversed_payment = Payment.objects.create(
+            student=self.student1,
+            financial_record=record,
+            amount=Decimal('1000.00'),
+            payment_method='cash',
+            is_approved=True,
+            status='approved',
+            is_reversed=True,
+        )
+
+        FinancialService.process_payment(approved, self.admin)
+
+        summary = FinancialService.get_student_financial_summary(self.student1)
+        self.assertEqual(summary['total_paid'], Decimal('4000.00'))
         self.assertEqual(summary['payment_count'], 1)
