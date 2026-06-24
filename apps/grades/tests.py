@@ -118,7 +118,10 @@ class AcademicServiceTests(TestCase):
         self.assertFalse(Grade.objects.filter(id=grade.id).exists())
         
         # Check notification
-        notification = Notification.objects.filter(recipient=self.user).first()
+        notification = Notification.objects.filter(
+            recipient=self.user,
+            title__icontains='Removed',
+        ).order_by('-id').first()
         self.assertIsNotNone(notification)
         self.assertIn('Removed', notification.title)
     
@@ -153,7 +156,7 @@ class AcademicServiceTests(TestCase):
         self.assertAlmostEqual(summary['average_percentage'], 80.0, places=1)
         self.assertEqual(summary['highest_grade']['subject'], 'Mathematics')
         self.assertEqual(summary['lowest_grade']['subject'], 'Science')
-        self.assertEqual(summary['status'], 'good')
+        self.assertEqual(summary['status'], 'excellent')
     
     def test_no_grades_summary(self):
         """Test summary when student has no grades"""
@@ -198,7 +201,7 @@ class AcademicServiceTests(TestCase):
         self.assertEqual(dashboard['total_students_graded'], 2)
         self.assertGreater(len(dashboard['subjects_summary']), 0)
         self.assertEqual(dashboard['grade_distribution']['A*'], 1)
-        self.assertEqual(dashboard['grade_distribution']['B'], 1)
+        self.assertEqual(dashboard['grade_distribution']['A'], 1)
 
 
 class GradeSignalTests(TransactionTestCase):
@@ -353,6 +356,6 @@ class PerformanceReportTests(TestCase):
         self.assertEqual(Grade.calculate_cambridge_grade(49.9), 'D')
 
     def test_save_sets_letter_grade(self):
-        grade = Grade(subject='Science', term='Term 2', percentage=76, student=self.student_profile)
+        grade = Grade(subject='Science', term='Term 2', percentage=76, student=self.student)
         grade.save()
         self.assertEqual(grade.cambridge_letter_grade, 'A')

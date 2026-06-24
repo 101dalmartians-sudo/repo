@@ -14,6 +14,7 @@ urlpatterns = [
     path('calendar/', include('apps.calendarapp.urls')),
     path('news/', include('apps.news.urls')),
     path('finance/', include(('apps.finance.urls', 'finance'), namespace='finance')),
+    path('reports/', include(('apps.reports.urls', 'reports'), namespace='reports')),
 ]
 
 # Serve media files in development

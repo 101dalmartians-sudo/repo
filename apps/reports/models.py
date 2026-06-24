@@ -9,6 +9,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 
 
 class ReportingPeriod(models.Model):
@@ -55,6 +56,13 @@ class ReportingPeriod(models.Model):
     
     def __str__(self):
         return f"{self.name} ({self.year})"
+
+    def clean(self):
+        if self.end_date < self.start_date:
+            raise ValidationError({'end_date': 'End date cannot be earlier than start date.'})
+        span_days = (self.end_date - self.start_date).days
+        if span_days not in (13, 14):
+            raise ValidationError({'end_date': 'Bi-weekly reporting periods should cover approximately 14 days.'})
     
     def is_open_for_submission(self):
         """Check if submission window is currently open"""

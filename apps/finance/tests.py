@@ -2,7 +2,8 @@ from decimal import Decimal
 from datetime import timedelta
 
 from django.contrib.auth.models import Permission, User
-from django.test import TestCase, TransactionTestCase
+from django.db.models.deletion import ProtectedError
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -13,6 +14,7 @@ from apps.students.models import (
 from apps.notifications.models import Notification
 from apps.finance.services import FinancialService
 from apps.finance.cache import DashboardCache
+from apps.finance.tasks import recalculate_financial_status
 
 from .models import Budget, Expense, ExpenseCategory, Income, MonthlyFinancialReport
 
@@ -114,6 +116,8 @@ class FinancialRecordSynchronizationTests(TestCase):
         self.record.due_date = timezone.now().date() - timedelta(days=1)
         self.record.transport_paid = Decimal('0.00')
         self.record.transport_balance = Decimal('5000.00')
+        self.record.tuition_paid = Decimal('0.00')
+        self.record.tuition_balance = Decimal('25000.00')
         self.record.update_status()
         self.assertEqual(self.record.status, 'overdue')
     
@@ -426,3 +430,105 @@ class FinancialServiceTests(TestCase):
         summary = FinancialService.get_student_financial_summary(self.student1)
         self.assertEqual(summary['total_paid'], Decimal('4000.00'))
         self.assertEqual(summary['payment_count'], 1)
+
+
+@override_settings(
+    CELERY_BROKER_URL='memory://',
+    CELERY_RESULT_BACKEND='cache+memory://',
+    CELERY_TASK_ALWAYS_EAGER=True,
+)
+class FinancialIntegritySignalsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('signalstudent', 'signalstudent@example.com', 'password')
+        self.student = StudentProfile.objects.create(
+            user=self.user,
+            student_id='STU900',
+            current_class='Form 2',
+            approved=True,
+        )
+        self.record = FinancialRecord.objects.create(
+            student=self.student,
+            term='term1',
+            year=2026,
+            transport_fee=Decimal('1000.00'),
+            school_tuition=Decimal('4000.00'),
+            transport_balance=Decimal('1000.00'),
+            tuition_balance=Decimal('4000.00'),
+        )
+
+    def test_delete_financial_record_with_active_payment_is_blocked(self):
+        Payment.objects.create(
+            student=self.student,
+            financial_record=self.record,
+            amount=Decimal('500.00'),
+            payment_method='cash',
+            is_approved=True,
+            status='approved',
+        )
+
+        with self.assertRaises(ProtectedError):
+            self.record.delete()
+
+
+@override_settings(
+    CELERY_BROKER_URL='memory://',
+    CELERY_RESULT_BACKEND='cache+memory://',
+    CELERY_TASK_ALWAYS_EAGER=True,
+)
+class FinancialTasksSynchronizationTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('taskstudent', 'taskstudent@example.com', 'password')
+        self.student = StudentProfile.objects.create(
+            user=self.user,
+            student_id='STU901',
+            current_class='Form 3',
+            approved=True,
+        )
+        self.record = FinancialRecord.objects.create(
+            student=self.student,
+            term='term2',
+            year=2026,
+            transport_fee=Decimal('2000.00'),
+            school_tuition=Decimal('6000.00'),
+            transport_balance=Decimal('2000.00'),
+            tuition_balance=Decimal('6000.00'),
+        )
+
+    def test_recalculate_task_rebuilds_balances_from_effective_payments(self):
+        Payment.objects.create(
+            student=self.student,
+            financial_record=self.record,
+            amount=Decimal('2500.00'),
+            payment_method='cash',
+            is_approved=True,
+            status='approved',
+        )
+
+        # Intentionally corrupt the stored financial aggregate fields.
+        self.record.transport_paid = Decimal('0.00')
+        self.record.tuition_paid = Decimal('0.00')
+        self.record.transport_balance = Decimal('2000.00')
+        self.record.tuition_balance = Decimal('6000.00')
+        self.record.status = 'pending'
+        self.record.payment_count = 0
+        self.record.last_payment_date = None
+        self.record.save(update_fields=[
+            'transport_paid',
+            'tuition_paid',
+            'transport_balance',
+            'tuition_balance',
+            'status',
+            'payment_count',
+            'last_payment_date',
+        ])
+
+        result = recalculate_financial_status()
+        self.assertEqual(result['status'], 'success')
+
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.transport_paid, Decimal('2000.00'))
+        self.assertEqual(self.record.tuition_paid, Decimal('500.00'))
+        self.assertEqual(self.record.transport_balance, Decimal('0.00'))
+        self.assertEqual(self.record.tuition_balance, Decimal('5500.00'))
+        self.assertEqual(self.record.payment_count, 1)
+        self.assertIsNotNone(self.record.last_payment_date)

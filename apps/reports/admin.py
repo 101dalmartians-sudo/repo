@@ -23,6 +23,8 @@ class ReportingPeriodAdmin(admin.ModelAdmin):
     list_filter = ['status', 'year', 'term', 'start_date']
     search_fields = ['name']
     readonly_fields = ['created_by', 'created_at', 'updated_at', 'analytics_link']
+    actions = ['mark_open', 'mark_closed', 'mark_archived']
+    actions = ['open_periods', 'close_periods', 'archive_periods']
     
     fieldsets = (
         ('Basic Information', {
@@ -110,6 +112,36 @@ class ReportingPeriodAdmin(admin.ModelAdmin):
         if not change:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+    @admin.action(description='Open selected reporting periods')
+    def mark_open(self, request, queryset):
+        updated = queryset.update(status='open')
+        self.message_user(request, f'{updated} reporting period(s) opened.', messages.SUCCESS)
+
+    @admin.action(description='Close selected reporting periods')
+    def mark_closed(self, request, queryset):
+        updated = queryset.update(status='closed')
+        self.message_user(request, f'{updated} reporting period(s) closed.', messages.SUCCESS)
+
+    @admin.action(description='Archive selected reporting periods')
+    def mark_archived(self, request, queryset):
+        updated = queryset.update(status='archived')
+        self.message_user(request, f'{updated} reporting period(s) archived.', messages.SUCCESS)
+
+    def open_periods(self, request, queryset):
+        updated = queryset.exclude(status='open').update(status='open')
+        self.message_user(request, f'Opened {updated} reporting period(s).', messages.SUCCESS)
+    open_periods.short_description = 'Mark selected periods as Open'
+
+    def close_periods(self, request, queryset):
+        updated = queryset.exclude(status='closed').update(status='closed')
+        self.message_user(request, f'Closed {updated} reporting period(s).', messages.SUCCESS)
+    close_periods.short_description = 'Mark selected periods as Closed'
+
+    def archive_periods(self, request, queryset):
+        updated = queryset.exclude(status='archived').update(status='archived')
+        self.message_user(request, f'Archived {updated} reporting period(s).', messages.SUCCESS)
+    archive_periods.short_description = 'Mark selected periods as Archived'
 
 
 @admin.register(ReportField)

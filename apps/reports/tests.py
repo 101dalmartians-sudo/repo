@@ -5,10 +5,13 @@ Tests for Bi-Weekly Student Reporting System
 from decimal import Decimal
 from django.contrib.auth.models import User, Group
 from django.test import TestCase, TransactionTestCase
+from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 
 from apps.students.models import StudentProfile
+from apps.accounts.models import AdminProfile
+from apps.teachers.models import TeacherProfile
 from apps.reports.models import (
     ReportingPeriod, ReportField, BiWeeklyReport, ReportingAnalytics
 )
@@ -423,3 +426,91 @@ class ReportingWorkflowTests(TransactionTestCase):
         report.refresh_from_db()
         self.assertEqual(report.status, 'published')
         self.assertIsNotNone(report.published_at)
+
+
+class ReportingViewsIntegrationTests(TestCase):
+    def setUp(self):
+        now = timezone.now()
+
+        self.teacher_user = User.objects.create_user('tview', 'tview@example.com', 'password')
+        TeacherProfile.objects.create(user=self.teacher_user, department='Science', approved=True)
+
+        self.admin_user = User.objects.create_user('aview', 'aview@example.com', 'password')
+        self.admin_user.is_staff = True
+        self.admin_user.save()
+        AdminProfile.objects.create(user=self.admin_user, approved=True, email_verified=True)
+
+        self.student_user = User.objects.create_user('sview', 'sview@example.com', 'password')
+        self.student = StudentProfile.objects.create(
+            user=self.student_user,
+            student_id='STUV01',
+            current_class='Form 1',
+            approved=True,
+        )
+
+        self.period = ReportingPeriod.objects.create(
+            name='Cycle 1',
+            start_date=now.date(),
+            end_date=(now + timedelta(days=14)).date(),
+            term='term1',
+            year=2026,
+            submission_opens=now - timedelta(days=1),
+            submission_deadline=now + timedelta(days=5),
+            approval_deadline=now + timedelta(days=10),
+            status='open',
+        )
+
+    def test_teacher_can_open_periods_page(self):
+        self.client.login(username='tview', password='password')
+        response = self.client.get(reverse('reports:teacher_periods'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Bi-Weekly Report Workspace')
+
+    def test_admin_can_approve_and_publish_report(self):
+        report = BiWeeklyReport.objects.create(
+            period=self.period,
+            student=self.student,
+            teacher=self.teacher_user,
+            content={'strengths': 'Strong progress'},
+            status='submitted',
+            submitted_by=self.teacher_user,
+            submitted_at=timezone.now(),
+        )
+
+        self.client.login(username='aview', password='password')
+        response = self.client.post(reverse('reports:admin_reports_dashboard'), {
+            'report_id': report.id,
+            'action': 'approve',
+            'note': 'Approved',
+        })
+        self.assertEqual(response.status_code, 302)
+        report.refresh_from_db()
+        self.assertEqual(report.status, 'approved')
+
+        response = self.client.post(reverse('reports:admin_reports_dashboard'), {
+            'report_id': report.id,
+            'action': 'publish',
+        })
+        self.assertEqual(response.status_code, 302)
+        report.refresh_from_db()
+        self.assertEqual(report.status, 'published')
+
+    def test_student_can_view_published_reports(self):
+        report = BiWeeklyReport.objects.create(
+            period=self.period,
+            student=self.student,
+            teacher=self.teacher_user,
+            content={'general_comments': 'Great job'},
+            status='published',
+            published_at=timezone.now(),
+        )
+
+        self.client.login(username='sview', password='password')
+        response = self.client.get(reverse('reports:student_reports'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Progress Reports')
+        self.assertContains(response, self.period.name)
+
+        detail = self.client.get(reverse('reports:student_report_detail', args=[report.id]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, self.period.name)

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h1 class="text-3xl font-semibold text-slate-900">Progress Reports</h1>
+        <p class="mt-2 text-slate-600">Bi-weekly reports and end-of-term summary snapshots.</p>
+        <p class="mt-2 text-sm text-slate-500">Reports Available: {{ student_metrics.available }}</p>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-2xl font-semibold text-slate-900">Bi-Weekly Reports</h2>
+        {% if reports %}
+        <div class="mt-4 space-y-3">
+            {% for report in reports %}
+            <div class="rounded-2xl border border-slate-200 p-4">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <p class="font-semibold text-slate-900">{{ report.period.name }}</p>
+                        <p class="text-sm text-slate-600">Teacher: {{ report.teacher|default:'-' }} | Published: {{ report.published_at|date:'Y-m-d H:i' }}</p>
+                    </div>
+                    <div class="flex gap-3 text-sm">
+                        <a href="{% url 'reports:student_report_detail' report.id %}" class="text-academy hover:underline">View</a>
+                        <a href="{% url 'reports:student_report_download' report.id %}" class="text-academy hover:underline">Download</a>
+                        <a href="{% url 'reports:student_report_print' report.id %}" class="text-academy hover:underline">Print</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="mt-4 text-slate-600">No published bi-weekly reports yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-2xl font-semibold text-slate-900">End of Term Reports</h2>
+        {% if end_of_term_reports %}
+        <div class="mt-4 grid gap-3 md:grid-cols-2">
+            {% for term in end_of_term_reports %}
+            <div class="rounded-2xl border border-slate-200 p-4">
+                <p class="font-semibold">{{ term.term }}</p>
+                <p class="text-sm text-slate-600">Subjects: {{ term.subjects }}</p>
+                <p class="text-sm text-slate-600">Average: {{ term.average|floatformat:2 }}%</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="mt-4 text-slate-600">No end-of-term grade summaries available yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

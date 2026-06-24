@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h1 class="text-3xl font-semibold text-slate-900">Bi-Weekly Reporting Admin</h1>
+        <p class="mt-2 text-slate-600">Draft: {{ metrics.drafted }} | Submitted: {{ metrics.submitted }} | Approved: {{ metrics.approved }} | Published: {{ metrics.published }} | Outstanding: {{ metrics.outstanding }}</p>
+    </div>
+
+    <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
+        <form method="get" class="grid gap-3 md:grid-cols-3">
+            <select name="period" class="rounded-2xl border border-slate-300 px-4 py-3">
+                <option value="">All periods</option>
+                {% for period in periods %}
+                <option value="{{ period.id }}" {% if selected_period == period.id|stringformat:'s' %}selected{% endif %}>{{ period.name }}</option>
+                {% endfor %}
+            </select>
+            <select name="status" class="rounded-2xl border border-slate-300 px-4 py-3">
+                <option value="">All statuses</option>
+                <option value="draft" {% if selected_status == 'draft' %}selected{% endif %}>Draft</option>
+                <option value="submitted" {% if selected_status == 'submitted' %}selected{% endif %}>Submitted</option>
+                <option value="approved" {% if selected_status == 'approved' %}selected{% endif %}>Approved</option>
+                <option value="published" {% if selected_status == 'published' %}selected{% endif %}>Published</option>
+                <option value="archived" {% if selected_status == 'archived' %}selected{% endif %}>Archived</option>
+            </select>
+            <button type="submit" class="rounded-2xl bg-slate-900 px-5 py-3 text-white">Filter</button>
+        </form>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-xl font-semibold">Reports Queue</h2>
+        {% if reports %}
+        <div class="mt-4 space-y-4">
+            {% for report in reports %}
+            <div class="rounded-2xl border border-slate-200 p-4">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <p class="font-semibold">{{ report.student }} - {{ report.period.name }}</p>
+                        <p class="text-sm text-slate-600">Teacher: {{ report.teacher|default:'-' }} | Status: {{ report.get_status_display }} | Updated: {{ report.updated_at|date:'Y-m-d H:i' }}</p>
+                    </div>
+                </div>
+                <form method="post" class="mt-3 flex flex-wrap items-center gap-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="report_id" value="{{ report.id }}">
+                    <input type="text" name="note" placeholder="Optional admin note" class="min-w-[260px] rounded-2xl border border-slate-300 px-4 py-2 text-sm">
+                    <button name="action" value="approve" class="rounded-2xl bg-emerald-700 px-4 py-2 text-sm text-white">Approve</button>
+                    <button name="action" value="return" class="rounded-2xl bg-amber-600 px-4 py-2 text-sm text-white">Return</button>
+                    <button name="action" value="reject" class="rounded-2xl bg-rose-700 px-4 py-2 text-sm text-white">Reject</button>
+                    <button name="action" value="publish" class="rounded-2xl bg-academy px-4 py-2 text-sm text-white">Publish</button>
+                    <button name="action" value="archive" class="rounded-2xl bg-slate-700 px-4 py-2 text-sm text-white">Archive</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="mt-4 text-slate-600">No reports match this filter.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

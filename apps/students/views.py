@@ -9,6 +9,7 @@ from apps.assignments.models import Assignment
 from apps.notifications.models import Notification
 from apps.news.models import News
 from apps.grades.models import Grade
+from apps.reports.services import BiWeeklyReportService
 from .models import (
     StudentProfile,
     FinancialRecord,
@@ -43,6 +44,7 @@ def dashboard(request):
         'news': news,
         'overdue_records': overdue_records,
         'upcoming_exams': upcoming_exams,
+        'student_report_metrics': BiWeeklyReportService.get_student_metrics(profile),
     })
 
 

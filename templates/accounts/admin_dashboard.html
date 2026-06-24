@@ -64,6 +64,10 @@
             <p class="text-lg font-semibold">Manage News</p>
             <p class="mt-2 text-sm text-slate-600">Create, edit, or delete news posts with images and documents.</p>
         </a>
+        <a href="{% url 'reports:admin_reports_dashboard' %}" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
+            <p class="text-lg font-semibold">Bi-Weekly Reporting</p>
+            <p class="mt-2 text-sm text-slate-600">Review submitted reports, approve, publish, and archive progress communication.</p>
+        </a>
         <a href="/admin/" class="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-5 text-left shadow-sm transition hover:border-slate-300">
             <p class="text-lg font-semibold">Django admin</p>
             <p class="mt-2 text-sm text-slate-600">Open the built-in Django admin site for advanced management.</p>
@@ -100,6 +104,11 @@
                 <div>
                     <p class="text-sm text-slate-500">Overdue student accounts</p>
                     <p class="text-3xl font-semibold text-rose-600">{{ overdue_accounts }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">Reports drafted / submitted / approved / published</p>
+                    <p class="text-sm font-semibold text-slate-900">{{ reporting_metrics.drafted }} / {{ reporting_metrics.submitted }} / {{ reporting_metrics.approved }} / {{ reporting_metrics.published }}</p>
+                    <p class="text-xs text-slate-600">Outstanding: {{ reporting_metrics.outstanding }}</p>
                 </div>
             </div>
         </div>

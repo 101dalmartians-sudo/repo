@@ -1,5 +1,6 @@
 """Financial Synchronization Signals."""
 
+from django.db.models.deletion import ProtectedError
 from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
 
@@ -114,10 +115,8 @@ def synchronize_financial_record_deletion(sender, instance, **kwargs):
     Prevent deletion of financial records that have payments.
     Synchronize if deletion is allowed.
     """
-    from django.core.exceptions import ProtectedError
-    
     # Check if there are any active payments
-    if instance.payments.filter(is_approved=True, is_reversed=False).exists():
+    if instance.payments.filter(is_approved=True, status='approved', is_reversed=False).exists():
         # Don't allow deletion - this maintains data integrity
         raise ProtectedError(
             "Cannot delete financial record that has payments. "

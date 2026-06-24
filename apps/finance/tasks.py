@@ -7,10 +7,11 @@ Handles periodic synchronization, report generation, and data consistency checks
 from celery import shared_task
 from decimal import Decimal
 from datetime import datetime, timedelta
-from django.db.models import Q, F, Sum
+from django.db.models import Q, F, Sum, Max
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
+from django.contrib.auth.models import User
 
 from apps.students.models import (
     FinancialRecord, Payment, StudentProfile, AuditLog, AttendanceRecord
@@ -28,15 +29,16 @@ def recalculate_financial_status():
     Runs periodically to ensure status is always accurate.
     """
     try:
-        records = FinancialRecord.objects.all()
+        records = FinancialRecord.objects.select_related('student', 'student__user').all()
         updated_count = 0
+        overdue_notifications = 0
         
         for record in records:
             old_status = record.status
-            record.update_status()
+            FinancialService.synchronize_financial_record(record)
+            record.refresh_from_db(fields=['status'])
             
             if record.status != old_status:
-                record.save(update_fields=['status', 'updated_at'])
                 updated_count += 1
                 
                 # Notify if status changed to overdue
@@ -47,6 +49,7 @@ def recalculate_financial_status():
                         title='Fee Payment Overdue',
                         message=msg
                     )
+                    overdue_notifications += 1
         
         # Invalidate caches
         DashboardCache.invalidate_admin_dashboard()
@@ -54,6 +57,7 @@ def recalculate_financial_status():
         return {
             'status': 'success',
             'records_updated': updated_count,
+            'overdue_notifications': overdue_notifications,
             'timestamp': timezone.now().isoformat()
         }
     except Exception as e:
@@ -158,7 +162,7 @@ def generate_monthly_financial_reports():
         )
         
         # Notify admin
-        for admin in StudentProfile.objects.filter(user__is_staff=True):
+        for admin in User.objects.filter(is_staff=True):
             msg = (
                 f"Monthly financial report generated for {year}-{month:02d}. "
                 f"Total income: {total_income:.2f}. "
@@ -166,7 +170,7 @@ def generate_monthly_financial_reports():
                 f"Net profit/loss: {(total_income - total_expenses):.2f}"
             )
             Notification.objects.create(
-                recipient=admin.user,
+                recipient=admin,
                 title='Monthly Financial Report Generated',
                 message=msg
             )
@@ -316,18 +320,54 @@ def audit_financial_consistency():
                 'records': [p.receipt_number for p in orphaned_payments[:5]]
             })
         
-        # Check for missing status updates
+        # Check for status mismatches against current balances/due-date logic
         inconsistent_status = []
         for record in FinancialRecord.objects.all()[:100]:  # Sample check
-            record.update_status()
-            if record.status == 'pending' and record.total_balance == 0:
+            expected_status = 'paid' if record.total_balance == 0 else (
+                'partial' if record.total_balance < record.total_fee else (
+                    'overdue' if record.due_date and record.due_date < timezone.now().date() and record.total_balance > 0 else 'pending'
+                )
+            )
+            if record.status != expected_status:
                 inconsistent_status.append(str(record))
+
+        # Check payment aggregates are aligned with effective payments
+        payment_mismatches = []
+        for record in FinancialRecord.objects.all()[:100]:  # Sample check
+            payments = Payment.objects.filter(
+                financial_record=record,
+                is_approved=True,
+                status='approved',
+                is_reversed=False,
+            )
+            effective_total = payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            expected_transport_paid = min(record.transport_fee, effective_total)
+            expected_tuition_paid = min(
+                record.school_tuition,
+                max(effective_total - record.transport_fee, Decimal('0.00')),
+            )
+            expected_payment_count = payments.count()
+            expected_last_payment = payments.aggregate(latest=Max('payment_date'))['latest']
+
+            if (
+                record.transport_paid != expected_transport_paid
+                or record.tuition_paid != expected_tuition_paid
+                or record.payment_count != expected_payment_count
+                or record.last_payment_date != expected_last_payment
+            ):
+                payment_mismatches.append(str(record))
         
         if inconsistent_status:
             issues.append({
                 'type': 'INCONSISTENT_STATUS',
                 'count': len(inconsistent_status),
                 'records': inconsistent_status
+            })
+        if payment_mismatches:
+            issues.append({
+                'type': 'PAYMENT_AGGREGATE_MISMATCH',
+                'count': len(payment_mismatches),
+                'records': payment_mismatches
             })
         
         # Log issues

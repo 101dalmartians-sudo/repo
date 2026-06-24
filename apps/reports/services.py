@@ -8,11 +8,87 @@ and synchronization with all dashboards.
 from django.db import transaction
 from django.utils import timezone
 from django.core.cache import cache
+from django.db.models import Q
+from apps.students.models import StudentProfile
 from apps.notifications.models import Notification
+from apps.grades.models import Grade
+from apps.students.models import AttendanceRecord, ExamResult
 from .models import BiWeeklyReport, ReportingAnalytics, ReportingPeriod
 
 
 class BiWeeklyReportService:
+        @staticmethod
+        def build_student_academic_snapshot(student, period):
+            """
+            Build read-only academic data for a report from existing source models.
+            No grade/attendance/exam data is duplicated into report workflow tables.
+            """
+            term_aliases = []
+            if period.term:
+                term_value = str(period.term).strip()
+                term_aliases.append(term_value)
+                normalized = term_value.lower().replace(' ', '')
+                if normalized.startswith('term') and normalized[4:].isdigit():
+                    number = normalized[4:]
+                    term_aliases.extend([f'term{number}', f'term {number}', f'Term {number}'])
+
+            grade_query = Grade.objects.filter(student=student)
+            if term_aliases:
+                term_filter = Q()
+                for alias in set(term_aliases):
+                    term_filter |= Q(term__iexact=alias)
+                grade_query = grade_query.filter(term_filter)
+
+            grades = list(
+                grade_query.order_by('subject').values(
+                    'subject', 'percentage', 'cambridge_letter_grade', 'term'
+                )
+            )
+
+            attendance_qs = AttendanceRecord.objects.filter(
+                student=student,
+                date__gte=period.start_date,
+                date__lte=period.end_date,
+            )
+            attendance_total = attendance_qs.count()
+            present_count = attendance_qs.filter(status='present').count()
+            absent_count = attendance_qs.filter(status='absent').count()
+            late_count = attendance_qs.filter(status='late').count()
+            attendance_percentage = round((present_count / attendance_total) * 100, 2) if attendance_total else 0
+
+            exams_qs = ExamResult.objects.filter(
+                student=student,
+                exam__exam_date__gte=period.start_date,
+                exam__exam_date__lte=period.end_date,
+            ).select_related('exam').order_by('-exam__exam_date')[:10]
+
+            recent_exams = [
+                {
+                    'subject': result.exam.subject,
+                    'term': result.exam.term,
+                    'year': result.exam.year,
+                    'exam_date': result.exam.exam_date,
+                    'score': result.score,
+                    'max_score': result.exam.max_score,
+                    'percentage': round(float(result.score) / float(result.exam.max_score) * 100, 2)
+                    if result.exam.max_score else 0,
+                }
+                for result in exams_qs
+            ]
+
+            return {
+                'grades': grades,
+                'grade_count': len(grades),
+                'attendance': {
+                    'percentage': attendance_percentage,
+                    'present': present_count,
+                    'absent': absent_count,
+                    'late': late_count,
+                    'total': attendance_total,
+                },
+                'recent_exams': recent_exams,
+            }
+
     """Service for bi-weekly report operations"""
     
     @staticmethod
@@ -310,13 +386,16 @@ class BiWeeklyReportService:
         )
     
     @staticmethod
-    def _invalidate_caches(student):
+    def _invalidate_caches(student, teacher_id=None):
         """Invalidate student report caches"""
         cache_keys = [
             f'student_bi_weekly_reports_{student.id}',
             f'student_all_reports_{student.id}',
-            f'student_dashboard_{student.id}'
+            f'student_dashboard_{student.id}',
+            f'admin_reporting_dashboard',
         ]
+        if teacher_id:
+            cache_keys.append(f'teacher_reporting_dashboard_{teacher_id}')
         cache.delete_many(cache_keys)
     
     @staticmethod
@@ -326,8 +405,9 @@ class BiWeeklyReportService:
             analytics, _ = ReportingAnalytics.objects.get_or_create(period=period)
             
             reports = period.reports.all()
+            approved_students = StudentProfile.objects.filter(approved=True).count()
             
-            analytics.total_students = reports.values('student').distinct().count()
+            analytics.total_students = approved_students
             analytics.reports_created = reports.count()
             analytics.reports_submitted = reports.filter(status='submitted').count()
             analytics.reports_approved = reports.filter(status='approved').count()
@@ -338,8 +418,38 @@ class BiWeeklyReportService:
                 analytics.completion_percentage = (
                     (analytics.reports_published / analytics.total_students) * 100
                 )
+            else:
+                analytics.completion_percentage = 0
             
             analytics.save()
             
         except Exception as e:
             pass  # Silently fail
+
+    @staticmethod
+    def get_admin_metrics():
+        reports = BiWeeklyReport.objects.all()
+        return {
+            'drafted': reports.filter(status='draft').count(),
+            'submitted': reports.filter(status='submitted').count(),
+            'approved': reports.filter(status='approved').count(),
+            'published': reports.filter(status='published').count(),
+            'outstanding': reports.exclude(status__in=['published', 'archived']).count(),
+        }
+
+    @staticmethod
+    def get_teacher_metrics(teacher_user):
+        reports = BiWeeklyReport.objects.filter(teacher=teacher_user)
+        return {
+            'completed': reports.filter(status__in=['approved', 'published']).count(),
+            'pending': reports.exclude(status__in=['approved', 'published', 'archived']).count(),
+            'submitted': reports.filter(status='submitted').count(),
+        }
+
+    @staticmethod
+    def get_student_metrics(student):
+        reports = BiWeeklyReport.objects.filter(student=student)
+        return {
+            'available': reports.filter(status='published').count(),
+            'total': reports.count(),
+        }

@@ -52,6 +52,7 @@
                 <p class="mt-4 text-slate-600">No new notifications.</p>
             {% endif %}
             <div class="mt-6 space-y-3">
+                <a href="{% url 'reports:student_reports' %}" class="block rounded-2xl bg-slate-100 px-4 py-3 text-slate-900 hover:bg-slate-200">Progress reports{% if student_report_metrics.available %} ({{ student_report_metrics.available }}){% endif %}</a>
                 <a href="{% url 'student_profile' %}" class="block rounded-2xl bg-slate-100 px-4 py-3 text-slate-900 hover:bg-slate-200">View financial records</a>
                 <a href="{% url 'grades_student_view' %}" class="block rounded-2xl bg-slate-100 px-4 py-3 text-slate-900 hover:bg-slate-200">View full grade report</a>
                 <a href="{% url 'accounts:logout' %}" class="block rounded-2xl bg-slate-100 px-4 py-3 text-slate-900 hover:bg-slate-200">Logout</a>

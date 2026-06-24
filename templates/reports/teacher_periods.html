@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h1 class="text-3xl font-semibold text-slate-900">Bi-Weekly Report Workspace</h1>
+        <p class="mt-2 text-slate-600">Select a cycle and student to draft or update progress communication reports.</p>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-xl font-semibold text-slate-900">Create or edit report</h2>
+        <form method="post" class="mt-4 grid gap-4 md:grid-cols-2">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Reporting Period</label>
+                <select name="period_id" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3" required>
+                    {% for period in periods %}
+                    <option value="{{ period.id }}">{{ period.name }} ({{ period.start_date }} - {{ period.end_date }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Student</label>
+                <select name="student_id" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3" required>
+                    {% for student in students %}
+                    <option value="{{ student.id }}">{{ student.student_id }} - {{ student.user.get_full_name|default:student.user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="md:col-span-2">
+                <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Open editor</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-xl font-semibold text-slate-900">My recent reports</h2>
+        {% if my_reports %}
+        <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Student</th>
+                        <th class="px-4 py-3 text-left">Cycle</th>
+                        <th class="px-4 py-3 text-left">Status</th>
+                        <th class="px-4 py-3 text-left">Updated</th>
+                        <th class="px-4 py-3 text-left">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 bg-white">
+                    {% for report in my_reports %}
+                    <tr>
+                        <td class="px-4 py-3">{{ report.student }}</td>
+                        <td class="px-4 py-3">{{ report.period.name }}</td>
+                        <td class="px-4 py-3">{{ report.get_status_display }}</td>
+                        <td class="px-4 py-3">{{ report.updated_at|date:'Y-m-d H:i' }}</td>
+                        <td class="px-4 py-3">
+                            <a href="{% url 'reports:teacher_report_editor' report.period.id report.student.id %}" class="text-academy hover:underline">Open</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="mt-4 text-slate-600">No reports created yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

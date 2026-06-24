@@ -16,6 +16,7 @@ from apps.teachers.models import TeacherProfile
 from apps.notifications.models import Notification
 from apps.news.models import News, GalleryImage, HomePageContactSection
 from apps.grades.models import Grade
+from apps.reports.services import BiWeeklyReportService
 
 
 def login_view(request):
@@ -122,6 +123,7 @@ def admin_dashboard(request):
         'total_admin_expenses': total_admin_expenses,
         'finance_remaining_budget': finance_remaining_budget,
         'finance_net_profit': finance_net_profit,
+        'reporting_metrics': BiWeeklyReportService.get_admin_metrics(),
     })
 
 
