@@ -1,5 +1,6 @@
 from decimal import Decimal
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth.models import Permission, User
 from django.db.models.deletion import ProtectedError
@@ -328,6 +329,23 @@ class PaymentSynchronizationTests(TransactionTestCase):
         self.assertEqual(self.record.total_paid, Decimal('5000.00'))
         self.assertEqual(self.record.total_balance, Decimal('25000.00'))
         self.assertEqual(self.record.payment_count, 1)
+
+    @patch('apps.notifications.signals.send_notification_email.delay', side_effect=Exception('broker down'))
+    @patch('apps.notifications.signals.send_notification_email')
+    def test_payment_creation_succeeds_when_celery_is_unavailable(self, send_notification_email_mock, _delay_mock):
+        payment = Payment.objects.create(
+            student=self.student,
+            financial_record=self.record,
+            amount=Decimal('5000.00'),
+            payment_method='cash',
+            is_approved=True,
+        )
+
+        self.assertIsNotNone(payment.pk)
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.total_paid, Decimal('5000.00'))
+        self.assertEqual(self.record.payment_count, 1)
+        self.assertTrue(send_notification_email_mock.called)
 
 
 class FinancialServiceTests(TestCase):
