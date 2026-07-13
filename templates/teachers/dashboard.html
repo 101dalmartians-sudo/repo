@@ -60,6 +60,15 @@
                 <p class="text-sm text-slate-600">{{ assignment.subject }} · {{ assignment.target_class }}</p>
                 <p class="mt-2 text-sm text-slate-500">Due {{ assignment.due_date|date:'Y-m-d H:i' }}</p>
                 {% if assignment.file_attachment %}
+                <div class="mt-3 rounded-xl border border-slate-300 bg-white px-3 py-2">
+                    <p class="text-sm font-medium text-slate-800">{{ assignment.attachment_icon }} {{ assignment.attachment_filename }}</p>
+                    <p class="mt-1 text-xs text-slate-500">
+                        {{ assignment.attachment_extension|upper|default:'FILE' }}
+                        {% if assignment.attachment_size_bytes %}
+                            · {{ assignment.attachment_size_bytes|filesizeformat }}
+                        {% endif %}
+                    </p>
+                </div>
                 <div class="mt-3 flex flex-wrap gap-3 text-sm">
                     <a href="{% url 'assignment_attachment_download' assignment.id %}" target="_blank" rel="noopener" class="rounded-xl bg-white px-3 py-2 text-slate-800 border border-slate-300 hover:bg-slate-100">Open attachment</a>
                     <a href="{% url 'assignment_attachment_download' assignment.id %}?download=1" class="rounded-xl bg-slate-900 px-3 py-2 text-white hover:bg-slate-800">Download</a>

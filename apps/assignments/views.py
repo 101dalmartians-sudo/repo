@@ -3,7 +3,6 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404
 from django.shortcuts import render, redirect
-import os
 
 from apps.assignments.forms import AssignmentForm
 from apps.notifications.models import Notification
@@ -55,9 +54,17 @@ def download_attachment(request, assignment_id):
     except FileNotFoundError as exc:
         raise Http404('Attachment file missing from storage.') from exc
 
-    filename = os.path.basename(assignment.file_attachment.name)
+    filename = assignment.attachment_filename
+    content_type = assignment.attachment_content_type
     force_download = request.GET.get('download') == '1'
-    return FileResponse(file_handle, as_attachment=force_download, filename=filename)
+    can_inline = content_type == 'application/pdf' or content_type.startswith('image/')
+    as_attachment = force_download or not can_inline
+    return FileResponse(
+        file_handle,
+        as_attachment=as_attachment,
+        filename=filename,
+        content_type=content_type,
+    )
 
 
 @login_required
@@ -71,6 +78,11 @@ def upload_assignment(request):
         if form.is_valid():
             assignment = form.save(commit=False)
             assignment.uploaded_by = request.user.teacher_profile
+            uploaded_file = request.FILES.get('file_attachment')
+            if uploaded_file:
+                assignment.original_filename = uploaded_file.name
+                assignment.file_content_type = uploaded_file.content_type or ''
+                assignment.file_size = uploaded_file.size
             assignment.save()
             notify_students_for_assignment(assignment)
             messages.success(request, 'Assignment uploaded and notifications were created.')

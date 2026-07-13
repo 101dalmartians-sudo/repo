@@ -1,4 +1,5 @@
 from datetime import timedelta
+import mimetypes
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -37,6 +38,7 @@ class AssignmentUploadTests(TestCase):
 
     def test_assignment_upload_creates_notification(self):
         upload_file = SimpleUploadedFile('test.pdf', b'PDF content', content_type='application/pdf')
+        expected_size = len(b'PDF content')
         response = self.client.post(
             '/assignments/upload/',
             {
@@ -52,6 +54,9 @@ class AssignmentUploadTests(TestCase):
         self.assertTrue(Notification.objects.exists())
         assignment = Assignment.objects.get(title='Test Assignment')
         self.assertTrue(assignment.file_attachment.name.startswith('assignments/'))
+        self.assertEqual(assignment.original_filename, 'test.pdf')
+        self.assertEqual(assignment.file_content_type, 'application/pdf')
+        self.assertEqual(assignment.file_size, expected_size)
         notification = Notification.objects.first()
         self.assertIn('New assignment', notification.title)
 
@@ -128,9 +133,15 @@ class AssignmentUploadTests(TestCase):
         file_matrix = [
             ('test.pdf', 'application/pdf'),
             ('test.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+            ('test.doc', 'application/msword'),
             ('test.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+            ('test.xls', 'application/vnd.ms-excel'),
+            ('test.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'),
+            ('test.ppt', 'application/vnd.ms-powerpoint'),
             ('test.jpg', 'image/jpeg'),
+            ('test.jpeg', 'image/jpeg'),
             ('test.png', 'image/png'),
+            ('test.zip', 'application/zip'),
         ]
 
         self.client.logout()
@@ -138,26 +149,47 @@ class AssignmentUploadTests(TestCase):
 
         for filename, content_type in file_matrix:
             with self.subTest(filename=filename):
-                assignment = Assignment.objects.create(
-                    title=f'Upload {filename}',
-                    subject='General',
-                    target_class='Form 1',
-                    due_date=self._future_due_date(),
-                    file_attachment=SimpleUploadedFile(filename, b'binary-content', content_type=content_type),
-                    uploaded_by=self.teacher_profile,
+                file_payload = b'binary-content'
+                upload_response = self.client.post(
+                    '/assignments/upload/',
+                    {
+                        'title': f'Upload {filename}',
+                        'subject': 'General',
+                        'target_class': 'Form 1',
+                        'due_date': '2030-01-01T12:00',
+                        'file_attachment': SimpleUploadedFile(filename, file_payload, content_type=content_type),
+                    },
+                    follow=True,
                 )
+                self.assertEqual(upload_response.status_code, 200)
+                assignment = Assignment.objects.get(title=f'Upload {filename}')
+                self.assertEqual(assignment.original_filename, filename)
+                self.assertEqual(assignment.file_content_type, content_type)
+                self.assertEqual(assignment.file_size, len(file_payload))
 
                 self.client.logout()
                 self.client.login(username='student1', password='password123')
                 response = self.client.get(reverse('assignment_attachment_download', args=[assignment.id]))
                 self.assertEqual(response.status_code, 200)
+                self.assertIn(f'filename="{filename}"', response.get('Content-Disposition', ''))
+
+                expected_open_inline = content_type == 'application/pdf' or content_type.startswith('image/')
+                if expected_open_inline:
+                    self.assertIn('inline;', response.get('Content-Disposition', ''))
+                else:
+                    self.assertIn('attachment;', response.get('Content-Disposition', ''))
+
+                expected_content_type = content_type or mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+                self.assertEqual(response.get('Content-Type'), expected_content_type)
                 response.close()
 
                 download_response = self.client.get(
                     reverse('assignment_attachment_download', args=[assignment.id]) + '?download=1'
                 )
                 self.assertEqual(download_response.status_code, 200)
-                self.assertIn('attachment; filename="', download_response.get('Content-Disposition', ''))
+                self.assertIn('attachment;', download_response.get('Content-Disposition', ''))
+                self.assertIn(f'filename="{filename}"', download_response.get('Content-Disposition', ''))
+                self.assertEqual(download_response.get('Content-Type'), expected_content_type)
                 download_response.close()
 
                 self.client.logout()
