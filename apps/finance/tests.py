@@ -18,6 +18,7 @@ from apps.finance.cache import DashboardCache
 from apps.finance.tasks import recalculate_financial_status
 
 from .models import Budget, Expense, ExpenseCategory, Income, MonthlyFinancialReport
+from apps.students.admin import FinancialRecordAdmin, FinancialRecordInline
 
 
 class FinanceViewsTests(TestCase):
@@ -448,6 +449,58 @@ class FinancialServiceTests(TestCase):
         summary = FinancialService.get_student_financial_summary(self.student1)
         self.assertEqual(summary['total_paid'], Decimal('4000.00'))
         self.assertEqual(summary['payment_count'], 1)
+
+    def test_update_financial_record_ignores_manual_paid_and_balance_inputs(self):
+        """Only fee fields should be mutable via service; paid/balance stay derived."""
+        record = FinancialRecord.objects.create(
+            student=self.student1,
+            term='term1',
+            year=2025,
+            transport_fee=Decimal('1000.00'),
+            school_tuition=Decimal('5000.00'),
+            transport_balance=Decimal('1000.00'),
+            tuition_balance=Decimal('5000.00'),
+        )
+
+        Payment.objects.create(
+            student=self.student1,
+            financial_record=record,
+            amount=Decimal('1200.00'),
+            payment_method='cash',
+            is_approved=True,
+            status='approved',
+        )
+
+        result = FinancialService.update_financial_record(
+            record,
+            self.admin,
+            transport_fee=Decimal('1500.00'),
+            tuition_paid=Decimal('9999.00'),
+            tuition_balance=Decimal('1.00'),
+            transport_paid=Decimal('8888.00'),
+            transport_balance=Decimal('2.00'),
+        )
+
+        self.assertTrue(result['success'])
+        record.refresh_from_db()
+
+        self.assertEqual(record.transport_fee, Decimal('1500.00'))
+        self.assertEqual(record.transport_paid, Decimal('1200.00'))
+        self.assertEqual(record.transport_balance, Decimal('300.00'))
+        self.assertEqual(record.tuition_paid, Decimal('0.00'))
+        self.assertEqual(record.tuition_balance, Decimal('5000.00'))
+
+
+class FinancialRecordAdminPolicyTests(TestCase):
+    """Administrative UI should not allow editing derived paid/balance fields."""
+
+    def test_financial_record_admin_marks_derived_fields_readonly(self):
+        readonly = set(FinancialRecordAdmin.readonly_fields)
+        self.assertTrue({'transport_paid', 'transport_balance', 'tuition_paid', 'tuition_balance'}.issubset(readonly))
+
+    def test_financial_record_inline_marks_derived_fields_readonly(self):
+        readonly = set(FinancialRecordInline.readonly_fields)
+        self.assertTrue({'transport_paid', 'transport_balance', 'tuition_paid', 'tuition_balance'}.issubset(readonly))
 
 
 @override_settings(

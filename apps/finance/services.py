@@ -176,34 +176,22 @@ class FinancialService:
             dict with result status
         """
         try:
-            # Update the fields
-            for field, value in updates.items():
-                if hasattr(financial_record, field):
-                    setattr(financial_record, field, value)
-            
-            # Update balance fields based on new fees
-            if 'transport_fee' in updates:
-                financial_record.transport_balance = max(
-                    financial_record.transport_fee - financial_record.transport_paid,
-                    Decimal('0.00')
-                )
-            
-            if 'school_tuition' in updates:
-                financial_record.tuition_balance = max(
-                    financial_record.school_tuition - financial_record.tuition_paid,
-                    Decimal('0.00')
-                )
+            # Only source fields are editable; paid/balance fields are always derived from payments.
+            allowed_updates = {'term', 'year', 'due_date', 'transport_fee', 'school_tuition'}
+            sanitized_updates = {field: value for field, value in updates.items() if field in allowed_updates}
+
+            for field, value in sanitized_updates.items():
+                setattr(financial_record, field, value)
             
             # Update metadata
             financial_record.updated_by = user
-            financial_record.update_status()
-            financial_record.save()
+            financial_record.save(update_fields=list(sanitized_updates.keys()) + ['updated_by', 'updated_at'])
 
-            # Recompute to align balances with all approved payments after fee changes
+            # Recompute all derived fields to align balances with approved payments.
             FinancialService.synchronize_financial_record(financial_record, user=user)
             
             # Create notification for significant changes
-            if 'transport_fee' in updates or 'school_tuition' in updates:
+            if 'transport_fee' in sanitized_updates or 'school_tuition' in sanitized_updates:
                 FinancialService._create_record_update_notification(financial_record)
             
             # Invalidate caches
