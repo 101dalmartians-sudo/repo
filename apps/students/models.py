@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -116,6 +117,61 @@ class FinancialRecord(models.Model):
             self.status = 'overdue'
         else:
             self.status = 'pending'
+
+    def recalculate_balances(self):
+        """Recompute balances from editable fee/paid fields."""
+        transport_fee = self.transport_fee or Decimal('0.00')
+        school_tuition = self.school_tuition or Decimal('0.00')
+        transport_paid = self.transport_paid or Decimal('0.00')
+        tuition_paid = self.tuition_paid or Decimal('0.00')
+
+        self.transport_fee = transport_fee
+        self.school_tuition = school_tuition
+        self.transport_paid = transport_paid
+        self.tuition_paid = tuition_paid
+        self.transport_balance = transport_fee - transport_paid
+        self.tuition_balance = school_tuition - tuition_paid
+
+    def clean(self):
+        super().clean()
+        self.recalculate_balances()
+
+        errors = {}
+        if self.transport_paid < Decimal('0.00'):
+            errors['transport_paid'] = 'Transport paid cannot be negative.'
+        if self.tuition_paid < Decimal('0.00'):
+            errors['tuition_paid'] = 'Tuition paid cannot be negative.'
+
+        overpayments_allowed = bool(getattr(settings, 'FINANCIAL_ALLOW_OVERPAYMENT', False))
+        if not overpayments_allowed:
+            if self.transport_paid > self.transport_fee:
+                errors['transport_paid'] = 'Transport paid cannot exceed transport fee.'
+            if self.tuition_paid > self.school_tuition:
+                errors['tuition_paid'] = 'Tuition paid cannot exceed school tuition.'
+            if self.transport_balance < Decimal('0.00'):
+                errors['transport_balance'] = 'Transport balance cannot be negative.'
+            if self.tuition_balance < Decimal('0.00'):
+                errors['tuition_balance'] = 'Tuition balance cannot be negative.'
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.recalculate_balances()
+        self.update_status()
+        self.full_clean()
+
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None:
+            update_fields = set(update_fields)
+            update_fields.update({
+                'transport_balance',
+                'tuition_balance',
+                'status',
+            })
+            kwargs['update_fields'] = list(update_fields)
+
+        super().save(*args, **kwargs)
     
     @property
     def total_fee(self):

@@ -331,8 +331,8 @@ def audit_financial_consistency():
             if record.status != expected_status:
                 inconsistent_status.append(str(record))
 
-        # Check payment aggregates are aligned with effective payments
-        payment_mismatches = []
+        # Check derived balance formula is respected on stored records
+        balance_mismatches = []
         for record in FinancialRecord.objects.all()[:100]:  # Sample check
             payments = Payment.objects.filter(
                 financial_record=record,
@@ -340,22 +340,18 @@ def audit_financial_consistency():
                 status='approved',
                 is_reversed=False,
             )
-            effective_total = payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            expected_transport_paid = min(record.transport_fee, effective_total)
-            expected_tuition_paid = min(
-                record.school_tuition,
-                max(effective_total - record.transport_fee, Decimal('0.00')),
-            )
+            expected_transport_balance = record.transport_fee - record.transport_paid
+            expected_tuition_balance = record.school_tuition - record.tuition_paid
             expected_payment_count = payments.count()
             expected_last_payment = payments.aggregate(latest=Max('payment_date'))['latest']
 
             if (
-                record.transport_paid != expected_transport_paid
-                or record.tuition_paid != expected_tuition_paid
+                record.transport_balance != expected_transport_balance
+                or record.tuition_balance != expected_tuition_balance
                 or record.payment_count != expected_payment_count
                 or record.last_payment_date != expected_last_payment
             ):
-                payment_mismatches.append(str(record))
+                balance_mismatches.append(str(record))
         
         if inconsistent_status:
             issues.append({
@@ -363,11 +359,11 @@ def audit_financial_consistency():
                 'count': len(inconsistent_status),
                 'records': inconsistent_status
             })
-        if payment_mismatches:
+        if balance_mismatches:
             issues.append({
-                'type': 'PAYMENT_AGGREGATE_MISMATCH',
-                'count': len(payment_mismatches),
-                'records': payment_mismatches
+                'type': 'BALANCE_DERIVATION_MISMATCH',
+                'count': len(balance_mismatches),
+                'records': balance_mismatches
             })
         
         # Log issues

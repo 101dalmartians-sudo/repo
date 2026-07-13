@@ -60,7 +60,7 @@ class FinancialRecordInline(admin.TabularInline):
         'term', 'year', 'due_date', 'transport_fee', 'transport_paid', 'transport_balance',
         'school_tuition', 'tuition_paid', 'tuition_balance',
     )
-    readonly_fields = ('transport_paid', 'transport_balance', 'tuition_paid', 'tuition_balance')
+    readonly_fields = ('transport_balance', 'tuition_balance')
     extra = 1
 
 
@@ -91,7 +91,7 @@ class FinancialRecordAdmin(admin.ModelAdmin):
         ('Transport Fee', {'fields': ('transport_fee', 'transport_paid', 'transport_balance')}),
         ('School Tuition', {'fields': ('school_tuition', 'tuition_paid', 'tuition_balance')}),
     )
-    readonly_fields = ('transport_paid', 'transport_balance', 'tuition_paid', 'tuition_balance')
+    readonly_fields = ('transport_balance', 'tuition_balance')
     actions = [export_to_csv, export_to_xlsx, export_to_json]
 
 

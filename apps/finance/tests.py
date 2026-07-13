@@ -159,7 +159,11 @@ class PaymentSynchronizationTests(TransactionTestCase):
         )
     
     def test_payment_creation_and_processing(self):
-        """Test that payment creation triggers synchronization"""
+        """Payment processing should not overwrite manually managed paid fields."""
+        self.record.transport_paid = Decimal('1200.00')
+        self.record.tuition_paid = Decimal('800.00')
+        self.record.save(update_fields=['transport_paid', 'tuition_paid'])
+
         # Create payment
         payment = Payment.objects.create(
             student=self.student,
@@ -174,17 +178,21 @@ class PaymentSynchronizationTests(TransactionTestCase):
         
         self.assertTrue(result['success'])
         
-        # Check financial record was updated
+        # Paid values remain finance-office controlled.
         self.record.refresh_from_db()
-        self.assertEqual(self.record.transport_paid, Decimal('5000.00'))
-        self.assertEqual(self.record.tuition_paid, Decimal('5000.00'))
-        self.assertEqual(self.record.transport_balance, Decimal('0.00'))
-        self.assertEqual(self.record.tuition_balance, Decimal('20000.00'))
+        self.assertEqual(self.record.transport_paid, Decimal('1200.00'))
+        self.assertEqual(self.record.tuition_paid, Decimal('800.00'))
+        self.assertEqual(self.record.transport_balance, Decimal('3800.00'))
+        self.assertEqual(self.record.tuition_balance, Decimal('24200.00'))
         self.assertEqual(self.record.status, 'partial')
         self.assertEqual(self.record.payment_count, 1)
     
     def test_payment_reversal(self):
-        """Test that payment reversal works correctly"""
+        """Payment reversal updates ledger metadata without changing paid summary values."""
+        self.record.transport_paid = Decimal('1000.00')
+        self.record.tuition_paid = Decimal('2000.00')
+        self.record.save(update_fields=['transport_paid', 'tuition_paid'])
+
         # Create and process payment
         payment = Payment.objects.create(
             student=self.student,
@@ -194,10 +202,11 @@ class PaymentSynchronizationTests(TransactionTestCase):
             is_approved=True
         )
         FinancialService.process_payment(payment, self.admin)
-        
-        # Verify payment was applied
+
+        # Verify summary remains as entered by finance office.
         self.record.refresh_from_db()
-        self.assertEqual(self.record.total_paid, Decimal('10000.00'))
+        self.assertEqual(self.record.total_paid, Decimal('3000.00'))
+        self.assertEqual(self.record.payment_count, 1)
         
         # Reverse payment
         result = FinancialService.reverse_payment(payment, self.admin, 'Test reversal')
@@ -208,14 +217,18 @@ class PaymentSynchronizationTests(TransactionTestCase):
         self.assertTrue(payment.is_reversed)
         self.assertEqual(payment.status, 'reversed')
         
-        # Check financial record balances were reversed
+        # Financial summary fields remain unchanged; only payment metadata changes.
         self.record.refresh_from_db()
-        self.assertEqual(self.record.total_paid, Decimal('0.00'))
-        self.assertEqual(self.record.total_balance, Decimal('30000.00'))
-        self.assertEqual(self.record.status, 'pending')
+        self.assertEqual(self.record.total_paid, Decimal('3000.00'))
+        self.assertEqual(self.record.total_balance, Decimal('27000.00'))
+        self.assertEqual(self.record.payment_count, 0)
     
     def test_multiple_payments_single_record(self):
-        """Test multiple payments against single financial record"""
+        """Multiple ledger payments should not mutate paid summary fields."""
+        self.record.transport_paid = Decimal('500.00')
+        self.record.tuition_paid = Decimal('1500.00')
+        self.record.save(update_fields=['transport_paid', 'tuition_paid'])
+
         # First payment
         payment1 = Payment.objects.create(
             student=self.student,
@@ -236,14 +249,14 @@ class PaymentSynchronizationTests(TransactionTestCase):
         )
         FinancialService.process_payment(payment2, self.admin)
         
-        # Check cumulative balance
+        # Summary remains record-driven; payment count/date still synchronize.
         self.record.refresh_from_db()
-        self.assertEqual(self.record.total_paid, Decimal('25000.00'))
-        self.assertEqual(self.record.total_balance, Decimal('5000.00'))
+        self.assertEqual(self.record.total_paid, Decimal('2000.00'))
+        self.assertEqual(self.record.total_balance, Decimal('28000.00'))
         self.assertEqual(self.record.payment_count, 2)
     
     def test_overpayment_handling(self):
-        """Test that overpayment is handled correctly"""
+        """Overpayment remainder is computed from payment ledger capacity."""
         payment = Payment.objects.create(
             student=self.student,
             financial_record=self.record,
@@ -257,14 +270,18 @@ class PaymentSynchronizationTests(TransactionTestCase):
         # Should have remainder
         self.assertEqual(result['remainder'], Decimal('5000.00'))
         
-        # Record should show full payment
+        # Financial summary remains manually managed.
         self.record.refresh_from_db()
-        self.assertEqual(self.record.total_paid, Decimal('30000.00'))
-        self.assertEqual(self.record.total_balance, Decimal('0.00'))
-        self.assertEqual(self.record.status, 'paid')
+        self.assertEqual(self.record.total_paid, Decimal('0.00'))
+        self.assertEqual(self.record.total_balance, Decimal('30000.00'))
+        self.assertEqual(self.record.status, 'pending')
 
     def test_payment_update_recalculates_balances(self):
-        """Updating payment amount recalculates balances from scratch."""
+        """Updating payment amount should only refresh payment metadata."""
+        self.record.transport_paid = Decimal('500.00')
+        self.record.tuition_paid = Decimal('500.00')
+        self.record.save(update_fields=['transport_paid', 'tuition_paid'])
+
         payment = Payment.objects.create(
             student=self.student,
             financial_record=self.record,
@@ -278,12 +295,16 @@ class PaymentSynchronizationTests(TransactionTestCase):
         payment.save(update_fields=['amount'])
 
         self.record.refresh_from_db()
-        self.assertEqual(self.record.total_paid, Decimal('12000.00'))
-        self.assertEqual(self.record.total_balance, Decimal('18000.00'))
+        self.assertEqual(self.record.total_paid, Decimal('1000.00'))
+        self.assertEqual(self.record.total_balance, Decimal('29000.00'))
         self.assertEqual(self.record.payment_count, 1)
 
     def test_pending_to_approved_payment_updates_record(self):
-        """Approval transition should synchronize record balances and metadata."""
+        """Approval transition should synchronize payment metadata only."""
+        self.record.transport_paid = Decimal('250.00')
+        self.record.tuition_paid = Decimal('750.00')
+        self.record.save(update_fields=['transport_paid', 'tuition_paid'])
+
         payment = Payment.objects.create(
             student=self.student,
             financial_record=self.record,
@@ -294,19 +315,23 @@ class PaymentSynchronizationTests(TransactionTestCase):
         )
 
         self.record.refresh_from_db()
-        self.assertEqual(self.record.total_paid, Decimal('0.00'))
+        self.assertEqual(self.record.total_paid, Decimal('1000.00'))
 
         payment.is_approved = True
         payment.status = 'approved'
         payment.save(update_fields=['is_approved', 'status'])
 
         self.record.refresh_from_db()
-        self.assertEqual(self.record.total_paid, Decimal('6000.00'))
+        self.assertEqual(self.record.total_paid, Decimal('1000.00'))
         self.assertEqual(self.record.payment_count, 1)
         self.assertIsNotNone(self.record.last_payment_date)
 
     def test_payment_delete_recalculates_record(self):
-        """Deleting a payment should recompute record aggregates."""
+        """Deleting a payment should recompute payment metadata only."""
+        self.record.transport_paid = Decimal('1000.00')
+        self.record.tuition_paid = Decimal('500.00')
+        self.record.save(update_fields=['transport_paid', 'tuition_paid'])
+
         payment1 = Payment.objects.create(
             student=self.student,
             financial_record=self.record,
@@ -327,13 +352,17 @@ class PaymentSynchronizationTests(TransactionTestCase):
         payment2.delete()
 
         self.record.refresh_from_db()
-        self.assertEqual(self.record.total_paid, Decimal('5000.00'))
-        self.assertEqual(self.record.total_balance, Decimal('25000.00'))
+        self.assertEqual(self.record.total_paid, Decimal('1500.00'))
+        self.assertEqual(self.record.total_balance, Decimal('28500.00'))
         self.assertEqual(self.record.payment_count, 1)
 
     @patch('apps.notifications.signals.send_notification_email.delay', side_effect=Exception('broker down'))
     @patch('apps.notifications.signals.send_notification_email')
     def test_payment_creation_succeeds_when_celery_is_unavailable(self, send_notification_email_mock, _delay_mock):
+        self.record.transport_paid = Decimal('700.00')
+        self.record.tuition_paid = Decimal('300.00')
+        self.record.save(update_fields=['transport_paid', 'tuition_paid'])
+
         payment = Payment.objects.create(
             student=self.student,
             financial_record=self.record,
@@ -344,7 +373,7 @@ class PaymentSynchronizationTests(TransactionTestCase):
 
         self.assertIsNotNone(payment.pk)
         self.record.refresh_from_db()
-        self.assertEqual(self.record.total_paid, Decimal('5000.00'))
+        self.assertEqual(self.record.total_paid, Decimal('1000.00'))
         self.assertEqual(self.record.payment_count, 1)
         self.assertTrue(send_notification_email_mock.called)
 
@@ -375,8 +404,8 @@ class FinancialServiceTests(TestCase):
             year=2024,
             transport_fee=Decimal('5000.00'),
             school_tuition=Decimal('25000.00'),
-            transport_balance=Decimal('0.00'),
-            tuition_balance=Decimal('20000.00')
+            transport_paid=Decimal('5000.00'),
+            tuition_paid=Decimal('5000.00'),
         )
         
         record2 = FinancialRecord.objects.create(
@@ -385,37 +414,28 @@ class FinancialServiceTests(TestCase):
             year=2024,
             transport_fee=Decimal('5000.00'),
             school_tuition=Decimal('25000.00'),
-            transport_balance=Decimal('5000.00'),
-            tuition_balance=Decimal('25000.00')
-        )
-        
-        # Create payment
-        Payment.objects.create(
-            student=self.student1,
-            financial_record=record1,
-            amount=Decimal('5000.00'),
-            payment_method='cash',
-            is_approved=True
+            transport_paid=Decimal('1000.00'),
+            tuition_paid=Decimal('4000.00'),
         )
         
         summary = FinancialService.get_student_financial_summary(self.student1)
         
         self.assertEqual(summary['total_due'], Decimal('60000.00'))
-        self.assertEqual(summary['total_paid'], Decimal('5000.00'))
-        self.assertEqual(summary['total_balance'], Decimal('55000.00'))
+        self.assertEqual(summary['total_paid'], Decimal('15000.00'))
+        self.assertEqual(summary['total_balance'], Decimal('45000.00'))
         self.assertEqual(summary['record_count'], 2)
-        self.assertEqual(summary['payment_count'], 1)
+        self.assertEqual(summary['payment_count'], 0)
 
-    def test_summary_ignores_pending_and_reversed_payments(self):
-        """Only approved, non-reversed payments should count in summaries."""
+    def test_summary_uses_financial_record_paid_fields(self):
+        """Financial summary totals are sourced from FinancialRecord paid fields."""
         record = FinancialRecord.objects.create(
             student=self.student1,
             term='term1',
             year=2025,
             transport_fee=Decimal('5000.00'),
             school_tuition=Decimal('25000.00'),
-            transport_balance=Decimal('5000.00'),
-            tuition_balance=Decimal('25000.00')
+            transport_paid=Decimal('4000.00'),
+            tuition_paid=Decimal('2000.00'),
         )
 
         approved = Payment.objects.create(
@@ -447,37 +467,26 @@ class FinancialServiceTests(TestCase):
         FinancialService.process_payment(approved, self.admin)
 
         summary = FinancialService.get_student_financial_summary(self.student1)
-        self.assertEqual(summary['total_paid'], Decimal('4000.00'))
+        self.assertEqual(summary['total_paid'], Decimal('6000.00'))
         self.assertEqual(summary['payment_count'], 1)
 
-    def test_update_financial_record_ignores_manual_paid_and_balance_inputs(self):
-        """Only fee fields should be mutable via service; paid/balance stay derived."""
+    def test_update_financial_record_allows_manual_paid_and_derives_balances(self):
+        """Service update should accept paid fields and auto-derive balances."""
         record = FinancialRecord.objects.create(
             student=self.student1,
             term='term1',
             year=2025,
             transport_fee=Decimal('1000.00'),
             school_tuition=Decimal('5000.00'),
-            transport_balance=Decimal('1000.00'),
-            tuition_balance=Decimal('5000.00'),
-        )
-
-        Payment.objects.create(
-            student=self.student1,
-            financial_record=record,
-            amount=Decimal('1200.00'),
-            payment_method='cash',
-            is_approved=True,
-            status='approved',
         )
 
         result = FinancialService.update_financial_record(
             record,
             self.admin,
             transport_fee=Decimal('1500.00'),
-            tuition_paid=Decimal('9999.00'),
+            tuition_paid=Decimal('2500.00'),
             tuition_balance=Decimal('1.00'),
-            transport_paid=Decimal('8888.00'),
+            transport_paid=Decimal('500.00'),
             transport_balance=Decimal('2.00'),
         )
 
@@ -485,22 +494,155 @@ class FinancialServiceTests(TestCase):
         record.refresh_from_db()
 
         self.assertEqual(record.transport_fee, Decimal('1500.00'))
-        self.assertEqual(record.transport_paid, Decimal('1200.00'))
-        self.assertEqual(record.transport_balance, Decimal('300.00'))
-        self.assertEqual(record.tuition_paid, Decimal('0.00'))
-        self.assertEqual(record.tuition_balance, Decimal('5000.00'))
+        self.assertEqual(record.transport_paid, Decimal('500.00'))
+        self.assertEqual(record.transport_balance, Decimal('1000.00'))
+        self.assertEqual(record.tuition_paid, Decimal('2500.00'))
+        self.assertEqual(record.tuition_balance, Decimal('2500.00'))
+
+    def test_update_financial_record_rejects_paid_above_fee(self):
+        record = FinancialRecord.objects.create(
+            student=self.student1,
+            term='term2',
+            year=2025,
+            transport_fee=Decimal('800.00'),
+            school_tuition=Decimal('1200.00'),
+        )
+
+        result = FinancialService.update_financial_record(
+            record,
+            self.admin,
+            transport_paid=Decimal('900.00'),
+        )
+
+        self.assertFalse(result['success'])
 
 
 class FinancialRecordAdminPolicyTests(TestCase):
-    """Administrative UI should not allow editing derived paid/balance fields."""
+    """Administrative UI should allow paid edits but keep balances read-only."""
 
-    def test_financial_record_admin_marks_derived_fields_readonly(self):
+    def test_financial_record_admin_marks_only_balance_fields_readonly(self):
         readonly = set(FinancialRecordAdmin.readonly_fields)
-        self.assertTrue({'transport_paid', 'transport_balance', 'tuition_paid', 'tuition_balance'}.issubset(readonly))
+        self.assertIn('transport_balance', readonly)
+        self.assertIn('tuition_balance', readonly)
+        self.assertNotIn('transport_paid', readonly)
+        self.assertNotIn('tuition_paid', readonly)
 
-    def test_financial_record_inline_marks_derived_fields_readonly(self):
+
+class FinancialRecordBusinessRuleRegressionTests(TestCase):
+    """Explicit regression scenarios for fee, paid, and balance behavior."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('scenario-student', 'scenario@example.com', 'password')
+        self.student = StudentProfile.objects.create(
+            user=self.user,
+            student_id='STU777',
+            current_class='Form 4',
+            approved=True,
+        )
+
+    def test_scenario_1_tuition_balance_formula(self):
+        record = FinancialRecord.objects.create(
+            student=self.student,
+            term='term1',
+            year=2026,
+            school_tuition=Decimal('550.00'),
+            tuition_paid=Decimal('400.00'),
+            transport_fee=Decimal('0.00'),
+            transport_paid=Decimal('0.00'),
+        )
+        self.assertEqual(record.tuition_balance, Decimal('150.00'))
+
+    def test_scenario_2_transport_balance_formula(self):
+        record = FinancialRecord.objects.create(
+            student=self.student,
+            term='term1',
+            year=2026,
+            transport_fee=Decimal('80.00'),
+            transport_paid=Decimal('30.00'),
+            school_tuition=Decimal('0.00'),
+            tuition_paid=Decimal('0.00'),
+        )
+        self.assertEqual(record.transport_balance, Decimal('50.00'))
+
+    def test_scenario_3_edit_tuition_paid_updates_balance(self):
+        record = FinancialRecord.objects.create(
+            student=self.student,
+            term='term1',
+            year=2026,
+            school_tuition=Decimal('550.00'),
+            tuition_paid=Decimal('400.00'),
+        )
+        self.assertEqual(record.tuition_balance, Decimal('150.00'))
+
+        record.tuition_paid = Decimal('500.00')
+        record.save(update_fields=['tuition_paid'])
+        record.refresh_from_db()
+        self.assertEqual(record.tuition_balance, Decimal('50.00'))
+
+    def test_scenario_4_edit_tuition_fee_updates_balance(self):
+        record = FinancialRecord.objects.create(
+            student=self.student,
+            term='term1',
+            year=2026,
+            school_tuition=Decimal('550.00'),
+            tuition_paid=Decimal('400.00'),
+        )
+        self.assertEqual(record.tuition_balance, Decimal('150.00'))
+
+        record.school_tuition = Decimal('600.00')
+        record.save(update_fields=['school_tuition'])
+        record.refresh_from_db()
+        self.assertEqual(record.tuition_balance, Decimal('200.00'))
+
+    def test_scenario_5_multiple_payments_keep_history_and_summary_consistent(self):
+        record = FinancialRecord.objects.create(
+            student=self.student,
+            term='term2',
+            year=2026,
+            school_tuition=Decimal('550.00'),
+            tuition_paid=Decimal('400.00'),
+            transport_fee=Decimal('80.00'),
+            transport_paid=Decimal('30.00'),
+        )
+
+        payment1 = Payment.objects.create(
+            student=self.student,
+            financial_record=record,
+            amount=Decimal('200.00'),
+            payment_method='cash',
+            is_approved=True,
+            status='approved',
+        )
+        payment2 = Payment.objects.create(
+            student=self.student,
+            financial_record=record,
+            amount=Decimal('150.00'),
+            payment_method='cash',
+            is_approved=True,
+            status='approved',
+        )
+        payment3 = Payment.objects.create(
+            student=self.student,
+            financial_record=record,
+            amount=Decimal('100.00'),
+            payment_method='bank_transfer',
+            is_approved=True,
+            status='approved',
+        )
+
+        record.refresh_from_db()
+        self.assertEqual(Payment.objects.filter(financial_record=record).count(), 3)
+        self.assertEqual(record.tuition_balance, Decimal('150.00'))
+        self.assertEqual(record.transport_balance, Decimal('50.00'))
+        self.assertEqual(record.payment_count, 3)
+        self.assertEqual(Payment.objects.filter(pk__in=[payment1.pk, payment2.pk, payment3.pk]).count(), 3)
+
+    def test_financial_record_inline_marks_only_balance_fields_readonly(self):
         readonly = set(FinancialRecordInline.readonly_fields)
-        self.assertTrue({'transport_paid', 'transport_balance', 'tuition_paid', 'tuition_balance'}.issubset(readonly))
+        self.assertIn('transport_balance', readonly)
+        self.assertIn('tuition_balance', readonly)
+        self.assertNotIn('transport_paid', readonly)
+        self.assertNotIn('tuition_paid', readonly)
 
 
 @override_settings(
@@ -565,7 +707,7 @@ class FinancialTasksSynchronizationTests(TestCase):
             tuition_balance=Decimal('6000.00'),
         )
 
-    def test_recalculate_task_rebuilds_balances_from_effective_payments(self):
+    def test_recalculate_task_rebuilds_balances_from_fee_and_paid_fields(self):
         Payment.objects.create(
             student=self.student,
             financial_record=self.record,
@@ -575,11 +717,11 @@ class FinancialTasksSynchronizationTests(TestCase):
             status='approved',
         )
 
-        # Intentionally corrupt the stored financial aggregate fields.
-        self.record.transport_paid = Decimal('0.00')
-        self.record.tuition_paid = Decimal('0.00')
-        self.record.transport_balance = Decimal('2000.00')
-        self.record.tuition_balance = Decimal('6000.00')
+        # Intentionally corrupt balances while keeping paid values authoritative.
+        self.record.transport_paid = Decimal('1200.00')
+        self.record.tuition_paid = Decimal('700.00')
+        self.record.transport_balance = Decimal('2000.00')  # should become 800
+        self.record.tuition_balance = Decimal('6000.00')  # should become 5300
         self.record.status = 'pending'
         self.record.payment_count = 0
         self.record.last_payment_date = None
@@ -597,9 +739,9 @@ class FinancialTasksSynchronizationTests(TestCase):
         self.assertEqual(result['status'], 'success')
 
         self.record.refresh_from_db()
-        self.assertEqual(self.record.transport_paid, Decimal('2000.00'))
-        self.assertEqual(self.record.tuition_paid, Decimal('500.00'))
-        self.assertEqual(self.record.transport_balance, Decimal('0.00'))
-        self.assertEqual(self.record.tuition_balance, Decimal('5500.00'))
+        self.assertEqual(self.record.transport_paid, Decimal('1200.00'))
+        self.assertEqual(self.record.tuition_paid, Decimal('700.00'))
+        self.assertEqual(self.record.transport_balance, Decimal('800.00'))
+        self.assertEqual(self.record.tuition_balance, Decimal('5300.00'))
         self.assertEqual(self.record.payment_count, 1)
         self.assertIsNotNone(self.record.last_payment_date)

@@ -176,8 +176,11 @@ class FinancialService:
             dict with result status
         """
         try:
-            # Only source fields are editable; paid/balance fields are always derived from payments.
-            allowed_updates = {'term', 'year', 'due_date', 'transport_fee', 'school_tuition'}
+            # Fee and paid fields are editable; balances remain derived from them.
+            allowed_updates = {
+                'term', 'year', 'due_date', 'transport_fee', 'school_tuition',
+                'transport_paid', 'tuition_paid'
+            }
             sanitized_updates = {field: value for field, value in updates.items() if field in allowed_updates}
 
             for field, value in sanitized_updates.items():
@@ -187,7 +190,7 @@ class FinancialService:
             financial_record.updated_by = user
             financial_record.save(update_fields=list(sanitized_updates.keys()) + ['updated_by', 'updated_at'])
 
-            # Recompute all derived fields to align balances with approved payments.
+            # Recompute derived fields (balances/status) and payment metadata.
             FinancialService.synchronize_financial_record(financial_record, user=user)
             
             # Create notification for significant changes
@@ -227,7 +230,7 @@ class FinancialService:
         payments = FinancialService.get_effective_payments(student=student)
         
         total_due = records.aggregate(total=Sum(F('transport_fee') + F('school_tuition')))['total'] or Decimal('0.00')
-        total_paid = payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        total_paid = records.aggregate(total=Sum(F('transport_paid') + F('tuition_paid')))['total'] or Decimal('0.00')
         total_balance = records.aggregate(total=Sum(F('transport_balance') + F('tuition_balance')))['total'] or Decimal('0.00')
         
         overdue_count = records.filter(
@@ -259,8 +262,8 @@ class FinancialService:
             dict with dashboard metrics
         """
         total_students = StudentProfile.objects.filter(approved=True).count()
-        total_collected = FinancialService.get_effective_payments().aggregate(
-            total=Sum('amount')
+        total_collected = FinancialRecord.objects.aggregate(
+            total=Sum(F('transport_paid') + F('tuition_paid'))
         )['total'] or Decimal('0.00')
         
         outstanding_records = FinancialRecord.objects.filter(
@@ -306,27 +309,17 @@ class FinancialService:
     @staticmethod
     @transaction.atomic
     def synchronize_financial_record(financial_record, user=None):
-        """Rebuild a financial record state from all approved, non-reversed payments."""
+        """Synchronize derived balances/status and payment metadata for a record."""
         effective_payments = FinancialService.get_effective_payments(financial_record=financial_record)
-        total_paid = effective_payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-
-        transport_paid = min(financial_record.transport_fee, total_paid)
-        remaining_after_transport = max(total_paid - financial_record.transport_fee, Decimal('0.00'))
-        tuition_paid = min(financial_record.school_tuition, remaining_after_transport)
-
-        financial_record.transport_paid = transport_paid
-        financial_record.tuition_paid = tuition_paid
-        financial_record.transport_balance = max(financial_record.transport_fee - transport_paid, Decimal('0.00'))
-        financial_record.tuition_balance = max(financial_record.school_tuition - tuition_paid, Decimal('0.00'))
+        financial_record.recalculate_balances()
         financial_record.payment_count = effective_payments.count()
         financial_record.last_payment_date = effective_payments.aggregate(
             latest=Max('payment_date')
         )['latest']
-        financial_record.updated_by = user
+        if user is not None:
+            financial_record.updated_by = user
         financial_record.update_status()
         financial_record.save(update_fields=[
-            'transport_paid',
-            'tuition_paid',
             'transport_balance',
             'tuition_balance',
             'payment_count',
