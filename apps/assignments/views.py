@@ -1,6 +1,9 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.http import FileResponse, Http404
 from django.shortcuts import render, redirect
+import os
 
 from apps.assignments.forms import AssignmentForm
 from apps.notifications.models import Notification
@@ -25,6 +28,36 @@ def notify_students_for_assignment(assignment):
 
 def index(request):
     return render(request, 'assignments/index.html')
+
+
+@login_required
+def download_attachment(request, assignment_id):
+    from apps.assignments.models import Assignment
+
+    assignment = Assignment.objects.select_related('uploaded_by').filter(id=assignment_id).first()
+    if not assignment:
+        raise Http404('Assignment not found.')
+
+    if hasattr(request.user, 'student_profile'):
+        if assignment.target_class != request.user.student_profile.current_class:
+            raise PermissionDenied('You do not have access to this attachment.')
+    elif hasattr(request.user, 'teacher_profile'):
+        if assignment.uploaded_by_id != request.user.teacher_profile.id:
+            raise PermissionDenied('You do not have access to this attachment.')
+    elif not request.user.is_staff:
+        raise PermissionDenied('You do not have access to this attachment.')
+
+    if not assignment.file_attachment:
+        raise Http404('Attachment not found.')
+
+    try:
+        file_handle = assignment.file_attachment.open('rb')
+    except FileNotFoundError as exc:
+        raise Http404('Attachment file missing from storage.') from exc
+
+    filename = os.path.basename(assignment.file_attachment.name)
+    force_download = request.GET.get('download') == '1'
+    return FileResponse(file_handle, as_attachment=force_download, filename=filename)
 
 
 @login_required
