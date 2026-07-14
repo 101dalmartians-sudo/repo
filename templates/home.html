@@ -3,149 +3,730 @@
 
 {% block content %}
 <style>
-.home-hero {
-  position: relative;
-  min-height: 90vh;
-  overflow: hidden;
-}
-.home-hero .hero-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  z-index: 0;
-}
-.hero-panel {
-  position: relative;
-  z-index: 10;
-  background: rgba(0,0,0,0.18);
-  padding: 2.5rem 3rem;
-  border-radius: 1.25rem;
-  color: #ffffff;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.7);
-  display: inline-block;
-}
-.hero-panel p { color: #ffffff; }
+  :root {
+    --academy-red: #a30000;
+    --academy-charcoal: #182235;
+    --academy-surface: #fafafa;
+    --academy-border: rgba(15, 23, 42, 0.08);
+  }
 
-.login-button {
-  text-transform: uppercase;
-}
+  .home-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .section-card {
+    overflow: hidden;
+    border: 1px solid var(--academy-border);
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 16px 50px rgba(15, 23, 42, 0.08);
+  }
+
+  .section-pad {
+    padding: clamp(1.15rem, 2vw, 1.75rem);
+  }
+
+  .section-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--academy-red);
+  }
+
+  .section-kicker::before {
+    content: '';
+    width: 2.5rem;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--academy-red);
+  }
+
+  .section-title {
+    font-size: clamp(1.45rem, 2vw, 2rem);
+    font-weight: 700;
+    line-height: 1.12;
+    color: var(--academy-charcoal);
+  }
+
+  .accent-title {
+    color: var(--academy-red);
+  }
+
+  .hover-lift {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  .hover-lift:hover,
+  .hover-lift:focus-within {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.14);
+    border-color: rgba(163, 0, 0, 0.16);
+  }
+
+  .hero-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1.2fr 1fr 0.95fr;
+  }
+
+  .hero-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100%;
+    border-radius: 1.5rem;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 250, 250, 0.9)),
+      radial-gradient(circle at top left, rgba(163, 0, 0, 0.06), transparent 28%);
+  }
+
+  .hero-copy p {
+    color: #475569;
+  }
+
+  .hero-title {
+    font-size: clamp(2.5rem, 4.6vw, 4.8rem);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    color: var(--academy-charcoal);
+  }
+
+  .hero-title .accent {
+    color: var(--academy-red);
+  }
+
+  .hero-tagline {
+    font-size: clamp(1.05rem, 1.5vw, 1.45rem);
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.8rem 1rem;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(250, 250, 250, 0.95);
+    color: #334155;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.05);
+  }
+
+  .hero-badge svg,
+  .portal-icon svg,
+  .info-icon svg {
+    color: var(--academy-red);
+  }
+
+  .collage-grid {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: 1.15fr 0.85fr;
+    grid-template-rows: 1fr 0.8fr;
+    min-height: 100%;
+  }
+
+  .collage-large {
+    grid-row: span 2;
+    min-height: 28rem;
+  }
+
+  .collage-small {
+    min-height: 13.2rem;
+  }
+
+  .collage-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    background: #111827;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  }
+
+  .collage-card img,
+  .feature-image,
+  .news-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 260ms ease;
+  }
+
+  .collage-card:hover img,
+  .feature-card:hover .feature-image,
+  .news-card:hover .news-image {
+    transform: scale(1.04);
+  }
+
+  .collage-overlay,
+  .news-overlay {
+    position: absolute;
+    inset: auto 0 0 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(15, 23, 42, 0.86) 100%);
+    color: #ffffff;
+    padding: 1rem;
+  }
+
+  .portal-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .portal-card {
+    display: flex;
+    min-height: 12.5rem;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 1.35rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
+    padding: 1rem;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  }
+
+  .portal-card:hover,
+  .portal-card:focus-visible {
+    border-color: rgba(163, 0, 0, 0.18);
+  }
+
+  .portal-card .login-chip {
+    align-self: flex-start;
+    border-radius: 999px;
+    background: rgba(163, 0, 0, 0.08);
+    padding: 0.48rem 0.8rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--academy-red);
+  }
+
+  .feature-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .feature-card,
+  .news-card,
+  .contact-card,
+  .info-card {
+    overflow: hidden;
+    border-radius: 1.35rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #fafafa;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  .feature-card:hover,
+  .news-card:hover,
+  .contact-card:hover,
+  .info-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.11);
+    border-color: rgba(163, 0, 0, 0.16);
+  }
+
+  .feature-media {
+    position: relative;
+    height: 12rem;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(163, 0, 0, 0.16), rgba(24, 34, 53, 0.1));
+  }
+
+  .feature-body,
+  .news-body,
+  .info-body,
+  .contact-body {
+    padding: 1rem 1rem 1.1rem;
+  }
+
+  .news-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .news-media {
+    position: relative;
+    height: 11rem;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(163, 0, 0, 0.15), rgba(24, 34, 53, 0.12));
+  }
+
+  .news-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 1rem;
+    text-align: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, rgba(163, 0, 0, 0.9), rgba(24, 34, 53, 0.95));
+  }
+
+  .contact-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 0.9fr 1.1fr;
+  }
+
+  .info-list {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .info-card {
+    background: #ffffff;
+  }
+
+  .input-field {
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    background: #fff;
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+    color: #0f172a;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .input-field:focus {
+    border-color: rgba(163, 0, 0, 0.52);
+    box-shadow: 0 0 0 4px rgba(163, 0, 0, 0.08);
+    outline: none;
+  }
+
+  .contact-form {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .contact-note {
+    font-size: 0.88rem;
+    color: #64748b;
+  }
+
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+  }
+
+  .info-icon,
+  .portal-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    background: rgba(163, 0, 0, 0.08);
+  }
+
+  .section-spacer {
+    height: 0.15rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(163, 0, 0, 0.18), rgba(163, 0, 0, 0));
+  }
+
+  @media (max-width: 1280px) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .collage-large {
+      min-height: 23rem;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .contact-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .portal-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .collage-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+
+    .collage-large {
+      grid-row: auto;
+      min-height: 19rem;
+    }
+
+    .collage-small {
+      min-height: 12rem;
+    }
+
+    .info-list {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 
-<div class="home-hero">
-  <img class="hero-bg" src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy background" />
-  <div class="absolute inset-0 flex items-center justify-center px-4 py-20">
-    <div class="hero-panel mx-auto max-w-2xl text-center">
-      <h1 class="text-5xl font-bold">Aspire Academy</h1>
-      <p class="mt-4 text-lg">Aspiring for excellence</p>
+<div class="home-page">
+  <section id="about" class="section-card">
+    <div class="section-pad pb-0">
+      <div class="hero-grid">
+        <div class="hero-copy section-pad">
+          <div>
+            <p class="section-kicker">Welcome to</p>
+            <h1 class="mt-3 font-display hero-title font-extrabold">
+              Aspire <span class="accent">Academy</span>
+            </h1>
+            <p class="mt-4 hero-tagline">Inspiring Excellence Through Quality Education</p>
+            <p class="mt-4 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">
+              We provide a nurturing environment where learners grow academically, socially and personally.
+            </p>
 
-      <div class="mt-8 flex justify-center gap-4">
-        <a href="{% url 'accounts:login' %}" class="login-button rounded-3xl bg-white px-6 py-3 text-academy font-semibold transition hover:bg-slate-100">Student Login</a>
-        <a href="{% url 'accounts:login' %}" class="login-button rounded-3xl bg-white px-6 py-3 text-academy font-semibold transition hover:bg-slate-100">Teacher Login</a>
-        <a href="{% url 'accounts:login' %}" class="login-button rounded-3xl bg-white px-6 py-3 text-academy font-semibold transition hover:bg-slate-100">Admin Login</a>
-      </div>
-
-      <div class="mt-8">
-        <a href="{% url 'news_list' %}" class="text-academy underline">Latest News</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="mx-auto max-w-6xl mt-8">
-  <div class="grid md:grid-cols-3 gap-6">
-    <div class="md:col-span-2 rounded-2xl bg-white p-6 shadow">
-      <h2 class="text-2xl font-semibold">News highlights</h2>
-      {% if news %}
-        <ul class="mt-4 space-y-3">
-          {% for item in news %}
-            <li class="border p-4 rounded hover:shadow-sm">
-              <a href="{% url 'news_detail' item.id %}" class="font-semibold text-academy">{{ item.title }}</a>
-              <p class="text-sm text-slate-600 mt-1">{{ item.content|truncatewords:20 }}</p>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="mt-3 text-slate-600">No news yet.</p>
-      {% endif %}
-    </div>
-
-    <div class="rounded-2xl bg-white p-5 shadow md:p-6">
-      <h2 class="text-2xl font-semibold">{{ contact_section.section_title }}</h2>
-      <div class="mt-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
-          <p class="text-sm leading-6 text-slate-600">{{ contact_section.introductory_text }}</p>
-
-          <div class="mt-4 grid gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl bg-white p-3 shadow-sm">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</p>
-              <a href="tel:{{ contact_section.phone_number|cut:' ' }}" class="mt-1 block text-sm text-slate-700 transition hover:text-slate-900">{{ contact_section.phone_number }}</a>
+            <div class="hero-badges mt-6">
+              <div class="hero-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="M12 2 2 7l10 5 8-4.9V17h2V7L12 2Zm-7 9.5V15l7 3.5 7-3.5v-3.5L12 14 5 11.5Z"/></svg>
+                <span class="text-sm font-medium">Qualified Teachers</span>
+              </div>
+              <div class="hero-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v10.5a1 1 0 0 1-1 1H8.5L4 20V5a1 1 0 0 1 1-1Zm2 3v2h12V7H6Zm0 4v2h8v-2H6Z"/></svg>
+                <span class="text-sm font-medium">Modern Facilities</span>
+              </div>
+              <div class="hero-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="m12 2 7 3v6c0 4.9-3.3 9.6-7 11-3.7-1.4-7-6.1-7-11V5l7-3Zm0 5a3 3 0 0 0-3 3c0 1.1.6 2 1.5 2.5L9 16h2l1-2h2l-1-1.5c.9-.5 1.5-1.4 1.5-2.5a3 3 0 0 0-3-3Z"/></svg>
+                <span class="text-sm font-medium">Safe &amp; Secure Environment</span>
+              </div>
             </div>
+          </div>
 
-            <div class="rounded-2xl bg-white p-3 shadow-sm">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
-              <a href="mailto:{{ contact_section.email_address }}" class="mt-1 block text-sm break-all text-slate-700 transition hover:text-slate-900">{{ contact_section.email_address }}</a>
+          <div class="mt-6 grid gap-3 sm:grid-cols-3">
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Learn</p>
+              <p class="mt-2 text-sm text-slate-700">Purpose-built spaces for focused teaching and meaningful growth.</p>
             </div>
-
-            <div class="rounded-2xl bg-white p-3 shadow-sm">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Address</p>
-              <p class="mt-1 text-sm text-slate-700">{{ contact_section.physical_address }}</p>
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Connect</p>
+              <p class="mt-2 text-sm text-slate-700">A school community designed for families, learners, and staff.</p>
             </div>
-
-            <div class="rounded-2xl bg-white p-3 shadow-sm">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Availability</p>
-              <p class="mt-1 text-sm text-slate-700">{{ contact_section.availability_hours }}</p>
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Excel</p>
+              <p class="mt-2 text-sm text-slate-700">Balanced academics, co-curriculars, and student wellbeing.</p>
             </div>
           </div>
         </div>
 
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
-          <h3 class="text-lg font-semibold text-slate-900">{{ contact_section.form_heading }}</h3>
-          <p class="mt-1 text-sm text-slate-600">{{ contact_section.form_description }}</p>
-          <form id="contact-home-form" class="mt-4 grid gap-3" onsubmit="handleSubmit(event)">
+        {% with hero_image=gallery_images.0 second_image=gallery_images.1 third_image=gallery_images.2 fourth_image=gallery_images.3 %}
+        <div id="gallery" class="section-pad">
+          <div class="collage-grid">
+            <figure class="collage-card collage-large hover-lift">
+              {% if hero_image %}
+                <img src="{{ hero_image.image.url }}" alt="{{ hero_image.title|default:'Aspire Academy campus highlight' }}" class="feature-image" loading="eager" decoding="async">
+              {% else %}
+                <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy campus" class="feature-image" loading="eager" decoding="async">
+              {% endif %}
+              <figcaption class="collage-overlay">
+                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-white/75">Campus Life</p>
+                <p class="mt-2 text-lg font-semibold leading-tight">
+                  {{ hero_image.title|default:'A vibrant learning environment' }}
+                </p>
+                <p class="mt-2 text-sm text-white/80">
+                  {{ hero_image.caption|default:'Modern spaces designed for learning, growth, and confidence.' }}
+                </p>
+              </figcaption>
+            </figure>
+
+            <figure class="collage-card collage-small hover-lift">
+              {% if second_image %}
+                <img src="{{ second_image.image.url }}" alt="{{ second_image.title|default:'Aspire Academy experience' }}" class="feature-image" loading="lazy" decoding="async">
+              {% else %}
+                <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy experience" class="feature-image" loading="lazy" decoding="async">
+              {% endif %}
+              <figcaption class="collage-overlay">
+                <p class="text-sm font-semibold">{{ second_image.title|default:'Learning moments' }}</p>
+              </figcaption>
+            </figure>
+
+            <figure class="collage-card collage-small hover-lift">
+              {% if third_image %}
+                <img src="{{ third_image.image.url }}" alt="{{ third_image.title|default:'Aspire Academy activity' }}" class="feature-image" loading="lazy" decoding="async">
+              {% else %}
+                <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy activity" class="feature-image" loading="lazy" decoding="async">
+              {% endif %}
+              <figcaption class="collage-overlay">
+                <p class="text-sm font-semibold">{{ third_image.title|default:'Student engagement' }}</p>
+              </figcaption>
+            </figure>
+
+            <figure class="collage-card collage-small hover-lift">
+              {% if fourth_image %}
+                <img src="{{ fourth_image.image.url }}" alt="{{ fourth_image.title|default:'Aspire Academy gallery image' }}" class="feature-image" loading="lazy" decoding="async">
+              {% else %}
+                <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy gallery image" class="feature-image" loading="lazy" decoding="async">
+              {% endif %}
+              <figcaption class="collage-overlay">
+                <p class="text-sm font-semibold">{{ fourth_image.title|default:'School community' }}</p>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+        {% endwith %}
+
+        <div id="admissions" class="section-pad">
+          <div class="section-spacer mb-4"></div>
+          <div class="flex items-end justify-between gap-4">
             <div>
-              <label for="fullName" class="mb-1 block text-sm font-medium text-slate-700">Full Name</label>
-              <input id="fullName" name="fullName" type="text" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Your full name" />
+              <p class="section-kicker">Portal Access</p>
+              <h2 class="mt-2 section-title">Login to access your dashboard</h2>
             </div>
-            <div>
-              <label for="email" class="mb-1 block text-sm font-medium text-slate-700">Email Address</label>
-              <input id="email" name="email" type="email" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="you@example.com" />
+          </div>
+
+          <div class="portal-grid mt-5">
+            <a href="{% url 'accounts:login' %}" class="portal-card hover-lift focus-ring">
+              <div>
+                <span class="portal-icon"><svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="M12 3 1 9l11 6 9-4.9V17h2V9L12 3Zm-6 9.5V15l6 3.3 6-3.3v-2.5L12 14 6 12.5Z"/></svg></span>
+                <p class="mt-4 text-lg font-semibold text-slate-900">Student Login</p>
+                <p class="mt-2 text-sm leading-6 text-slate-600">Access class resources, announcements, and your school dashboard.</p>
+              </div>
+              <span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--academy-red)]">Login Now <span aria-hidden="true">→</span></span>
+            </a>
+
+            <a href="{% url 'accounts:login' %}" class="portal-card hover-lift focus-ring">
+              <div>
+                <span class="portal-icon"><svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg></span>
+                <p class="mt-4 text-lg font-semibold text-slate-900">Teacher Login</p>
+                <p class="mt-2 text-sm leading-6 text-slate-600">Manage lessons, track progress, and communicate with students.</p>
+              </div>
+              <span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--academy-red)]">Login Now <span aria-hidden="true">→</span></span>
+            </a>
+
+            <a href="{% url 'accounts:login' %}" class="portal-card hover-lift focus-ring">
+              <div>
+                <span class="portal-icon"><svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="M17 7V6a5 5 0 0 0-10 0v1H5v14h14V7h-2Zm-8-1a3 3 0 0 1 6 0v1H9V6Zm3 6a2 2 0 0 1 1 3.732V18h-2v-1.268A2 2 0 0 1 12 12Z"/></svg></span>
+                <p class="mt-4 text-lg font-semibold text-slate-900">Admin Login</p>
+                <p class="mt-2 text-sm leading-6 text-slate-600">Oversee records, approvals, and operational management tools.</p>
+              </div>
+              <span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--academy-red)]">Login Now <span aria-hidden="true">→</span></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-card section-pad">
+    <div class="flex items-end justify-between gap-4">
+      <div>
+        <p class="section-kicker">Gallery</p>
+        <h2 class="mt-2 section-title">Campus experiences, reimagined as feature cards</h2>
+      </div>
+    </div>
+
+    <div class="feature-grid mt-5">
+      {% for image in gallery_images|slice:":5" %}
+        <article class="feature-card hover-lift">
+          <div class="feature-media">
+            <img src="{{ image.image.url }}" alt="{{ image.title|default:'Aspire Academy gallery image' }}" class="feature-image" loading="lazy" decoding="async">
+          </div>
+          <div class="feature-body">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--academy-red)]">Feature</p>
+            <h3 class="mt-2 text-lg font-semibold text-slate-900">{{ image.title|default:'Campus highlight' }}</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-600">{{ image.caption|default:'Explore Aspire Academy learning, activity, and community spaces.' }}</p>
+          </div>
+        </article>
+      {% empty %}
+        <article class="feature-card hover-lift">
+          <div class="feature-media">
+            <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy campus" class="feature-image" loading="lazy" decoding="async">
+          </div>
+          <div class="feature-body">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--academy-red)]">Feature</p>
+            <h3 class="mt-2 text-lg font-semibold text-slate-900">Aspire Academy</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-600">Campus imagery will appear here from the existing gallery content.</p>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section id="news" class="section-card section-pad">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="section-kicker">News highlights</p>
+        <h2 class="mt-2 section-title">Latest updates from the school</h2>
+      </div>
+      <a href="{% url 'news_list' %}" class="text-sm font-semibold text-[color:var(--academy-red)] transition hover:opacity-80 focus-ring">View all news</a>
+    </div>
+
+    {% if news %}
+      <div class="news-grid mt-5">
+        {% for item in news %}
+          {% with news_image=item.images.all|first %}
+            <article class="news-card hover-lift">
+              <div class="news-media">
+                {% if news_image %}
+                  <img src="{{ news_image.image.url }}" alt="{{ item.title }}" class="news-image" loading="lazy" decoding="async">
+                {% else %}
+                  <div class="news-fallback">
+                    <div>
+                      <p class="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">News</p>
+                      <p class="mt-2 text-lg font-semibold leading-tight">{{ item.title }}</p>
+                    </div>
+                  </div>
+                {% endif %}
+                <div class="news-overlay">
+                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">{{ item.created_at|date:"d M Y" }}</p>
+                  <p class="mt-1 text-base font-semibold leading-tight">{{ item.title }}</p>
+                </div>
+              </div>
+              <div class="news-body">
+                <p class="text-sm leading-6 text-slate-600">{{ item.content|truncatewords:24 }}</p>
+                <a href="{% url 'news_detail' item.id %}" class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--academy-red)]">Read more <span aria-hidden="true">→</span></a>
+              </div>
+            </article>
+          {% endwith %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="mt-5 rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-600">
+        No news has been published yet.
+      </div>
+    {% endif %}
+  </section>
+
+  <section id="contact" class="section-card section-pad">
+    <div class="flex items-end justify-between gap-4">
+      <div>
+        <p class="section-kicker">Contact our team</p>
+        <h2 class="mt-2 section-title">Speak with the Aspire Academy office</h2>
+      </div>
+    </div>
+
+    <div class="contact-grid mt-5">
+      <div class="contact-card">
+        <div class="contact-body">
+          <p class="text-sm leading-7 text-slate-600">{{ contact_section.introductory_text }}</p>
+
+          <div class="info-list mt-5">
+            <div class="info-card hover-lift p-4">
+              <div class="info-row">
+                <span class="info-icon"><svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A18 18 0 0 1 2 4a1 1 0 0 1 1-1h3.49a1 1 0 0 1 1 1c0 1.25.2 2.46.57 3.58a1 1 0 0 1-.24 1.01l-2.2 2.2Z"/></svg></span>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Phone</p>
+                  <a href="tel:{{ contact_section.phone_number|cut:' ' }}" class="mt-2 block text-sm font-medium text-slate-900 transition hover:text-[color:var(--academy-red)]">{{ contact_section.phone_number }}</a>
+                </div>
+              </div>
             </div>
+
+            <div class="info-card hover-lift p-4">
+              <div class="info-row">
+                <span class="info-icon"><svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 4.24V18h16V8.24l-8 4.8-8-4.8ZM20 6H4l8 4.8L20 6Z"/></svg></span>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Email</p>
+                  <a href="mailto:{{ contact_section.email_address }}" class="mt-2 block break-all text-sm font-medium text-slate-900 transition hover:text-[color:var(--academy-red)]">{{ contact_section.email_address }}</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-card hover-lift p-4">
+              <div class="info-row">
+                <span class="info-icon"><svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.2A2.2 2.2 0 1 1 12 7a2.2 2.2 0 0 1 0 4.4Z"/></svg></span>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Address</p>
+                  <p class="mt-2 text-sm font-medium text-slate-900">{{ contact_section.physical_address }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-card hover-lift p-4">
+              <div class="info-row">
+                <span class="info-icon"><svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2Zm13 8H4v10h16V10Z"/><path d="M7 12h3v3H7v-3Z"/></svg></span>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Office Hours</p>
+                  <p class="mt-2 text-sm font-medium text-slate-900">{{ contact_section.availability_hours }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-body">
+          <h3 class="text-xl font-semibold text-slate-900">{{ contact_section.form_heading }}</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-600">{{ contact_section.form_description }}</p>
+
+          <form id="contact-home-form" class="contact-form mt-5" onsubmit="handleSubmit(event)">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="fullName" class="mb-1.5 block text-sm font-medium text-slate-700">Full Name</label>
+                <input id="fullName" name="fullName" type="text" required class="input-field" placeholder="Your full name" />
+              </div>
+              <div>
+                <label for="email" class="mb-1.5 block text-sm font-medium text-slate-700">Email Address</label>
+                <input id="email" name="email" type="email" required class="input-field" placeholder="you@example.com" />
+              </div>
+            </div>
+
             <div>
-              <label for="subject" class="mb-1 block text-sm font-medium text-slate-700">Subject / Reason</label>
-              <select id="subject" name="subject" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+              <label for="subject" class="mb-1.5 block text-sm font-medium text-slate-700">Subject / Reason</label>
+              <select id="subject" name="subject" required class="input-field">
                 <option value="General Inquiry">General Inquiry</option>
                 <option value="Support">Support</option>
                 <option value="Partnerships">Partnerships</option>
                 <option value="Admissions">Admissions</option>
               </select>
             </div>
+
             <div>
-              <label for="message" class="mb-1 block text-sm font-medium text-slate-700">Message</label>
-              <textarea id="message" name="message" rows="3" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Tell us how we can help"></textarea>
+              <label for="message" class="mb-1.5 block text-sm font-medium text-slate-700">Message</label>
+              <textarea id="message" name="message" rows="5" required class="input-field resize-none" placeholder="Tell us how we can help..."></textarea>
             </div>
-            <button type="submit" class="mt-1 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300">Send Message</button>
+
+            <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--academy-red)] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[color:var(--academy-red)]/25 focus:ring-offset-2">
+              Send Message
+            </button>
           </form>
+
+          <p class="contact-note mt-4">This section is managed from Django admin.</p>
         </div>
       </div>
-      <p class="mt-3 text-xs text-slate-500">This section is managed from Django admin.</p>
-      <script>
-        function handleSubmit(e) {
-          e.preventDefault();
-          const form = document.getElementById('contact-home-form');
-          const data = {
-            fullName: form.fullName.value,
-            email: form.email.value,
-            subject: form.subject.value,
-            message: form.message.value,
-          };
-          console.log('Contact form submitted:', data);
-          form.reset();
-        }
-      </script>
     </div>
-  </div>
+
+    <script>
+      function handleSubmit(e) {
+        e.preventDefault();
+        const form = document.getElementById('contact-home-form');
+        const data = {
+          fullName: form.fullName.value,
+          email: form.email.value,
+          subject: form.subject.value,
+          message: form.message.value,
+        };
+        console.log('Contact form submitted:', data);
+        form.reset();
+      }
+    </script>
+  </section>
 </div>
 {% endblock %}
