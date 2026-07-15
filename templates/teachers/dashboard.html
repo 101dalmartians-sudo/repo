@@ -39,13 +39,24 @@
             <h2 class="text-2xl font-semibold text-slate-900">Quick actions</h2>
             <div class="mt-6 space-y-4 text-slate-700">
                 <a href="{% url 'grades_entry' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Enter grades</a>
+                <a href="{% url 'reports:teacher_periods' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Create reporting period</a>
                 <a href="{% url 'reports:teacher_periods' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Bi-weekly reports</a>
+                <a href="{% url 'reports:teacher_periods' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">End-of-term reports</a>
+                <a href="{% url 'teachers_attendance_workspace' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Attendance</a>
+                <a href="{% url 'teachers_exams_workspace' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Exam schedule</a>
+                <a href="{% url 'teachers_exams_workspace' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Exam results</a>
+                <a href="{% url 'grades_entry' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Student search</a>
+                <a href="{% url 'teachers_exams_workspace' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Calendar</a>
+                <a href="{% url 'assignment_upload' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Assignments</a>
+                <a href="{% url 'teachers_learning_resources' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Learning resources</a>
                 <a href="{% url 'accounts:logout' %}" class="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-academy hover:bg-slate-100">Logout</a>
             </div>
             <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 <p>Reports completed: <strong>{{ report_metrics.completed }}</strong></p>
                 <p>Reports pending: <strong>{{ report_metrics.pending }}</strong></p>
                 <p>Submitted awaiting review: <strong>{{ report_metrics.submitted }}</strong></p>
+                <p>Attendance sessions: <strong>{{ attendance_sessions_count }}</strong></p>
+                <p>Upcoming exams: <strong>{{ upcoming_exam_count }}</strong></p>
             </div>
         </div>
     </div>

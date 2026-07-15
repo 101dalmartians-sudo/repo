@@ -10,6 +10,7 @@ from .models import (
     StudentProfile,
     FinancialRecord,
     Payment,
+    AttendanceSession,
     AttendanceRecord,
     ExamSchedule,
     ExamResult,
@@ -106,17 +107,25 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(AttendanceRecord)
 class AttendanceRecordAdmin(admin.ModelAdmin):
-    list_display = ('student', 'date', 'term', 'year', 'status')
+    list_display = ('student', 'session', 'date', 'term', 'year', 'status', 'recorded_by')
     list_filter = ('term', 'year', 'status')
     search_fields = ('student__student_id', 'student__user__username')
     actions = [export_to_csv, export_to_xlsx, export_to_json]
 
 
+@admin.register(AttendanceSession)
+class AttendanceSessionAdmin(admin.ModelAdmin):
+    list_display = ('title', 'date', 'class_stream', 'subject', 'teacher', 'term', 'year')
+    list_filter = ('term', 'year', 'date', 'class_stream')
+    search_fields = ('title', 'class_stream', 'subject', 'teacher__username')
+    actions = [export_to_csv, export_to_xlsx, export_to_json]
+
+
 @admin.register(ExamSchedule)
 class ExamScheduleAdmin(admin.ModelAdmin):
-    list_display = ('subject', 'term', 'year', 'exam_date', 'results_released')
-    list_filter = ('term', 'year', 'results_released')
-    search_fields = ('subject',)
+    list_display = ('exam_name', 'subject', 'target_class', 'term', 'year', 'exam_date', 'results_released', 'created_by')
+    list_filter = ('term', 'year', 'results_released', 'target_class')
+    search_fields = ('exam_name', 'subject', 'target_class')
     actions = [export_to_csv, export_to_xlsx, export_to_json]
 
 
@@ -127,7 +136,7 @@ class ExamResultInline(admin.TabularInline):
 
 @admin.register(ExamResult)
 class ExamResultAdmin(admin.ModelAdmin):
-    list_display = ('exam', 'student', 'score', 'recorded_at')
+    list_display = ('exam', 'student', 'score', 'graded_by', 'recorded_at')
     search_fields = ('student__student_id', 'student__user__username', 'exam__subject')
     list_filter = ('exam__term', 'exam__year')
     actions = [export_to_csv, export_to_xlsx, export_to_json]

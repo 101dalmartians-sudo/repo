@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h1 class="text-3xl font-semibold text-slate-900">Attendance Workspace</h1>
+        <p class="mt-2 text-slate-600">Create attendance sessions once and reuse attendance data everywhere.</p>
+    </div>
+
+    {% if messages %}
+    <div class="space-y-4">
+        {% for message in messages %}
+        <div class="rounded-2xl border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-800">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-2xl font-semibold text-slate-900">Create attendance session</h2>
+        <form method="post" class="mt-6 grid gap-4 md:grid-cols-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_session">
+            <div>{{ attendance_form.title.label_tag }}{{ attendance_form.title }}</div>
+            <div>{{ attendance_form.date.label_tag }}{{ attendance_form.date }}</div>
+            <div>{{ attendance_form.term.label_tag }}{{ attendance_form.term }}</div>
+            <div>{{ attendance_form.year.label_tag }}{{ attendance_form.year }}</div>
+            <div>{{ attendance_form.class_stream.label_tag }}{{ attendance_form.class_stream }}</div>
+            <div>{{ attendance_form.subject.label_tag }}{{ attendance_form.subject }}</div>
+            <div class="md:col-span-2">
+                <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Create session</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-2xl font-semibold text-slate-900">Mark attendance</h2>
+        <form method="get" class="mt-4 grid gap-4 md:grid-cols-4">
+            <input name="search" value="{{ filters.search }}" placeholder="Search student" class="rounded-2xl border border-slate-300 px-4 py-3">
+            <input name="grade" value="{{ filters.grade }}" placeholder="Grade" class="rounded-2xl border border-slate-300 px-4 py-3">
+            <input name="class_stream" value="{{ filters.class_stream }}" placeholder="Class" class="rounded-2xl border border-slate-300 px-4 py-3">
+            <input name="subject_filter" value="{{ filters.subject_filter }}" placeholder="Subject" class="rounded-2xl border border-slate-300 px-4 py-3">
+            <div class="md:col-span-4">
+                <button type="submit" class="rounded-2xl bg-slate-900 px-5 py-3 text-white">Filter students</button>
+            </div>
+        </form>
+
+        <form method="post" class="mt-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_attendance">
+            <label class="block text-sm font-medium text-slate-700">Session</label>
+            <select name="session_id" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3" required>
+                <option value="">Select a session</option>
+                {% for session in sessions %}
+                <option value="{{ session.id }}">{{ session.title }} | {{ session.date }} | {{ session.class_stream }}</option>
+                {% endfor %}
+            </select>
+
+            <div class="overflow-hidden rounded-3xl border border-slate-200">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left"><input type="checkbox" id="select-all-attendance"></th>
+                            <th class="px-4 py-3 text-left">Student</th>
+                            <th class="px-4 py-3 text-left">Class</th>
+                            <th class="px-4 py-3 text-left">Status</th>
+                            <th class="px-4 py-3 text-left">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                        {% for student in students %}
+                        <tr>
+                            <td class="px-4 py-3"><input type="checkbox" class="student-checkbox" name="selected_students" value="{{ student.id }}"></td>
+                            <td class="px-4 py-3">{{ student.user.get_full_name|default:student.user.username }}</td>
+                            <td class="px-4 py-3">{{ student.current_class }}</td>
+                            <td class="px-4 py-3">
+                                <select name="status_{{ student.id }}" class="w-full rounded-xl border border-slate-300 px-3 py-2">
+                                    <option value="present">Present</option>
+                                    <option value="absent">Absent</option>
+                                    <option value="late">Late</option>
+                                    <option value="excused">Excused</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="text" name="note_{{ student.id }}" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Optional remark">
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="px-4 py-6 text-center text-slate-600">No matching students found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Save attendance</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const selectAllAttendance = document.getElementById('select-all-attendance');
+    if (selectAllAttendance) {
+        selectAllAttendance.addEventListener('change', function () {
+            document.querySelectorAll('.student-checkbox').forEach(function (checkbox) {
+                checkbox.checked = selectAllAttendance.checked;
+            });
+        });
+    }
+</script>
+{% endblock %}

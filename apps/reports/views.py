@@ -9,7 +9,9 @@ from django.utils import timezone
 
 from apps.grades.models import Grade
 from apps.students.models import AttendanceRecord, AuditLog, ExamResult, StudentProfile
+from apps.teachers.selectors import get_filtered_students
 
+from .forms import ReportingPeriodManageForm
 from .models import BiWeeklyReport, ReportingPeriod
 from .services import BiWeeklyReportService
 
@@ -93,18 +95,88 @@ def teacher_periods(request):
         raise Http404
 
     periods = ReportingPeriod.objects.exclude(status='archived').order_by('-year', '-start_date')
-    students = StudentProfile.objects.filter(approved=True).order_by('student_id')
+    students = get_filtered_students(request.GET)
     my_reports = BiWeeklyReport.objects.filter(teacher=request.user).select_related('period', 'student', 'student__user')
+    period_form = ReportingPeriodManageForm(prefix='period')
 
     if request.method == 'POST':
-        period_id = request.POST.get('period_id')
-        student_id = request.POST.get('student_id')
-        return redirect('reports:teacher_report_editor', period_id=period_id, student_id=student_id)
+        action = request.POST.get('action')
+
+        if action == 'create_period':
+            period_form = ReportingPeriodManageForm(request.POST, prefix='period')
+            if period_form.is_valid():
+                period = period_form.save(commit=False)
+                period.created_by = request.user
+                period.last_edited_by = request.user
+                period.status = 'closed'
+                period.save()
+                messages.success(request, 'Reporting period created as draft.')
+                return redirect('reports:teacher_periods')
+            messages.error(request, 'Please correct the reporting period form errors.')
+
+        elif action in {'publish_period', 'archive_period'}:
+            period = get_object_or_404(ReportingPeriod, pk=request.POST.get('period_id'))
+            if action == 'publish_period':
+                period.is_published = True
+                period.status = 'open'
+                period.publish_date = period.publish_date or timezone.now().date()
+                period.last_edited_by = request.user
+                period.save(update_fields=['is_published', 'status', 'publish_date', 'last_edited_by', 'updated_at'])
+                messages.success(request, 'Reporting period published.')
+            else:
+                period.status = 'archived'
+                period.last_edited_by = request.user
+                period.save(update_fields=['status', 'last_edited_by', 'updated_at'])
+                messages.success(request, 'Reporting period archived.')
+            return redirect('reports:teacher_periods')
+
+        else:
+            period_id = request.POST.get('period_id')
+            selected_students = request.POST.getlist('selected_students')
+            if not selected_students and request.POST.get('student_id'):
+                selected_students = [request.POST.get('student_id')]
+
+            if not period_id or not selected_students:
+                messages.error(request, 'Select a reporting period and at least one student.')
+                return redirect('reports:teacher_periods')
+
+            first_student = None
+            period = get_object_or_404(ReportingPeriod, pk=period_id)
+            for student_id in selected_students:
+                student = get_object_or_404(StudentProfile, pk=student_id, approved=True)
+                report, created = BiWeeklyReport.objects.get_or_create(
+                    period=period,
+                    student=student,
+                    defaults={
+                        'teacher': request.user,
+                        'content': {
+                            'strengths': '',
+                            'areas_for_improvement': '',
+                            'recommendations': '',
+                            'general_comments': '',
+                        },
+                        'status': 'draft',
+                    },
+                )
+                if created:
+                    _log_report_action(request.user, 'Bi-weekly report draft created', report)
+                if first_student is None:
+                    first_student = student
+
+            messages.success(request, f'Report workspace prepared for {len(selected_students)} student(s).')
+            return redirect('reports:teacher_report_editor', period_id=period.id, student_id=first_student.id)
 
     context = {
         'periods': periods,
-        'students': students,
+        'students': students[:200],
         'my_reports': my_reports[:30],
+        'period_form': period_form,
+        'filters': {
+            'search': (request.GET.get('search') or '').strip(),
+            'grade': (request.GET.get('grade') or '').strip(),
+            'class_stream': (request.GET.get('class_stream') or '').strip(),
+            'subject_filter': (request.GET.get('subject_filter') or '').strip(),
+        },
     }
     return render(request, 'reports/teacher_periods.html', context)
 
@@ -136,12 +208,23 @@ def teacher_report_editor(request, period_id, student_id):
     if report.teacher and report.teacher != request.user and not request.user.is_staff:
         raise Http404
 
+    available_subjects = list(
+        Grade.objects.filter(student=student)
+        .order_by('subject')
+        .values_list('subject', flat=True)
+        .distinct()
+    )
+
     if request.method == 'POST':
+        selected_subjects = request.POST.getlist('selected_subjects')
         content = {
             'strengths': request.POST.get('strengths', '').strip(),
             'areas_for_improvement': request.POST.get('areas_for_improvement', '').strip(),
             'recommendations': request.POST.get('recommendations', '').strip(),
             'general_comments': request.POST.get('general_comments', '').strip(),
+            'selected_subjects': selected_subjects,
+            'grading_format': request.POST.get('grading_format', 'percentage').strip() or 'percentage',
+            'custom_grading_scale': request.POST.get('custom_grading_scale', '').strip(),
         }
         report.content = content
         report.updated_by = request.user
@@ -173,6 +256,7 @@ def teacher_report_editor(request, period_id, student_id):
             'student': student,
             'report': report,
             'academic': academic,
+            'available_subjects': available_subjects,
         },
     )
 
@@ -192,6 +276,35 @@ def admin_reports_dashboard(request):
         reports = reports.filter(status=status)
 
     if request.method == 'POST':
+        if request.POST.get('scope') == 'period':
+            period = get_object_or_404(ReportingPeriod, pk=request.POST.get('period_id'))
+            period_action = request.POST.get('period_action')
+
+            if period_action == 'publish':
+                period.is_published = True
+                period.status = 'open'
+                period.publish_date = period.publish_date or timezone.now().date()
+                period.last_edited_by = request.user
+                period.save(update_fields=['is_published', 'status', 'publish_date', 'last_edited_by', 'updated_at'])
+                messages.success(request, 'Reporting period published.')
+            elif period_action == 'unpublish':
+                period.is_published = False
+                if period.status != 'archived':
+                    period.status = 'closed'
+                period.last_edited_by = request.user
+                period.save(update_fields=['is_published', 'status', 'last_edited_by', 'updated_at'])
+                messages.success(request, 'Reporting period unpublished.')
+            elif period_action == 'archive':
+                period.status = 'archived'
+                period.last_edited_by = request.user
+                period.save(update_fields=['status', 'last_edited_by', 'updated_at'])
+                messages.success(request, 'Reporting period archived.')
+            elif period_action == 'delete':
+                period.delete()
+                messages.success(request, 'Reporting period deleted.')
+
+            return redirect('reports:admin_reports_dashboard')
+
         report = get_object_or_404(BiWeeklyReport, pk=request.POST.get('report_id'))
         action = request.POST.get('action')
         note = request.POST.get('note', '').strip()

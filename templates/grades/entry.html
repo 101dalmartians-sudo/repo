@@ -28,6 +28,23 @@
                 {{ form.target_class.label_tag }}
                 {{ form.target_class }}
             </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Search student</label>
+                <input name="search" value="{{ filters.search }}" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" placeholder="Name or student ID">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Grade</label>
+                <input name="grade" value="{{ filters.grade }}" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" placeholder="Grade filter">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Class</label>
+                <input name="class_stream" value="{{ filters.class_stream }}" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" placeholder="Class filter">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Subject filter</label>
+                <input name="subject_filter" value="{{ filters.subject_filter }}" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" placeholder="Optional subject match">
+            </div>
+            <input type="hidden" name="load" value="1">
             <div class="lg:col-span-3">
                 <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white shadow-sm transition hover:bg-red-700">Load students</button>
             </div>
@@ -46,6 +63,7 @@
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-slate-100">
                         <tr>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700"><input type="checkbox" id="select-all-students"></th>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Student</th>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Class</th>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Percentage</th>
@@ -54,11 +72,12 @@
                     <tbody class="divide-y divide-slate-200 bg-white">
                         {% for student in students %}
                         <tr>
+                            <td class="px-6 py-4"><input type="checkbox" class="selected-student" name="selected_students" value="{{ student.pk }}"></td>
                             <td class="whitespace-nowrap px-6 py-4 text-sm text-slate-900">{{ student.user.get_full_name|default:student.user.username }}</td>
                             <td class="whitespace-nowrap px-6 py-4 text-sm text-slate-600">{{ student.current_class }}</td>
                             <td class="px-6 py-4">
                                 <input type="hidden" name="student_id" value="{{ student.pk }}">
-                                <input class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2" type="number" step="0.01" min="0" max="100" name="percentage" required>
+                                <input class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2" type="number" step="0.01" min="0" max="100" name="percentage_{{ student.pk }}">
                             </td>
                         </tr>
                         {% endfor %}
@@ -70,4 +89,15 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+    const selectAllStudents = document.getElementById('select-all-students');
+    if (selectAllStudents) {
+        selectAllStudents.addEventListener('change', function () {
+            document.querySelectorAll('.selected-student').forEach(function (checkbox) {
+                checkbox.checked = selectAllStudents.checked;
+            });
+        });
+    }
+</script>
 {% endblock %}

@@ -7,6 +7,52 @@
         <p class="mt-2 text-slate-600">Draft: {{ metrics.drafted }} | Submitted: {{ metrics.submitted }} | Approved: {{ metrics.approved }} | Published: {{ metrics.published }} | Outstanding: {{ metrics.outstanding }}</p>
     </div>
 
+    {% if messages %}
+    <div class="space-y-4">
+        {% for message in messages %}
+        <div class="rounded-2xl border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-800">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-xl font-semibold">Reporting Period Oversight</h2>
+        <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Period</th>
+                        <th class="px-4 py-3 text-left">Type</th>
+                        <th class="px-4 py-3 text-left">Status</th>
+                        <th class="px-4 py-3 text-left">Created By</th>
+                        <th class="px-4 py-3 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 bg-white">
+                    {% for period in periods %}
+                    <tr>
+                        <td class="px-4 py-3">{{ period.name }} ({{ period.start_date }} - {{ period.end_date }})</td>
+                        <td class="px-4 py-3">{{ period.get_reporting_type_display }}</td>
+                        <td class="px-4 py-3">{{ period.workspace_status|title }}</td>
+                        <td class="px-4 py-3">{{ period.created_by|default:'-' }}</td>
+                        <td class="px-4 py-3">
+                            <form method="post" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="scope" value="period">
+                                <input type="hidden" name="period_id" value="{{ period.id }}">
+                                <button name="period_action" value="publish" class="text-academy hover:underline">Publish</button>
+                                <button name="period_action" value="unpublish" class="ml-3 text-amber-700 hover:underline">Unpublish</button>
+                                <button name="period_action" value="archive" class="ml-3 text-slate-700 hover:underline">Archive</button>
+                                <button name="period_action" value="delete" class="ml-3 text-rose-700 hover:underline">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
         <form method="get" class="grid gap-3 md:grid-cols-3">
             <select name="period" class="rounded-2xl border border-slate-300 px-4 py-3">

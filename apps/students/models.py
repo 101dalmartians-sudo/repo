@@ -276,20 +276,42 @@ class Payment(models.Model):
         return f"RCPT-{uuid.uuid4().hex[:12].upper()}"
 
 
+class AttendanceSession(models.Model):
+    title = models.CharField(max_length=120)
+    teacher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='attendance_sessions')
+    date = models.DateField()
+    term = models.CharField(max_length=32)
+    year = models.IntegerField()
+    class_stream = models.CharField(max_length=64)
+    subject = models.CharField(max_length=128, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.title} - {self.class_stream} ({self.date})"
+
+
 class AttendanceRecord(models.Model):
     STATUS_CHOICES = [
         ('present', 'Present'),
         ('absent', 'Absent'),
         ('late', 'Late'),
+        ('excused', 'Excused'),
     ]
 
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='attendance_records')
+    session = models.ForeignKey('AttendanceSession', on_delete=models.SET_NULL, null=True, blank=True, related_name='records')
     term = models.CharField(max_length=10)
     year = models.IntegerField()
     date = models.DateField()
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='present')
     note = models.TextField(blank=True)
+    recorded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='recorded_attendance')
     recorded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('student', 'term', 'year', 'date')
@@ -300,20 +322,27 @@ class AttendanceRecord(models.Model):
 
 
 class ExamSchedule(models.Model):
+    exam_name = models.CharField(max_length=128, blank=True)
     subject = models.CharField(max_length=128)
+    target_class = models.CharField(max_length=64, blank=True)
     term = models.CharField(max_length=10)
     year = models.IntegerField()
     exam_date = models.DateField()
+    instructions = models.TextField(blank=True)
     description = models.TextField(blank=True)
     max_score = models.DecimalField(max_digits=6, decimal_places=2, default=100.00)
     results_released = models.BooleanField(default=False)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_exams')
+    published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-year', 'term', 'exam_date']
 
     def __str__(self):
-        return f"{self.subject} exam — {self.get_term_display() if hasattr(self, 'get_term_display') else self.term} {self.year}"
+        title = self.exam_name or self.subject
+        return f"{title} exam - {self.term} {self.year}"
 
 
 class ExamResult(models.Model):
@@ -321,7 +350,9 @@ class ExamResult(models.Model):
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='exam_results')
     score = models.DecimalField(max_digits=6, decimal_places=2)
     comments = models.TextField(blank=True)
+    graded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='graded_exam_results')
     recorded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('exam', 'student')

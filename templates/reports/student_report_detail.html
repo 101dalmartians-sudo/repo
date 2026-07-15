@@ -3,6 +3,7 @@
 {% block content %}
 <div class="mx-auto max-w-6xl space-y-6 {% if print_mode %}print:max-w-full{% endif %}">
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <p class="text-sm uppercase tracking-wide text-slate-500">Aspire Academy Portal</p>
         <h1 class="text-3xl font-semibold text-slate-900">{{ report.period.name }}</h1>
         <p class="mt-2 text-slate-600">Student: {{ report.student }}</p>
         <p class="text-sm text-slate-500">Teacher: {{ report.teacher|default:'-' }} | Published: {{ report.published_at|date:'Y-m-d H:i' }}</p>
@@ -14,6 +15,16 @@
             <a href="{% url 'reports:student_reports' %}" class="text-academy hover:underline">Back to Reports</a>
         </div>
         {% endif %}
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-2xl font-semibold">Reporting Period</h2>
+        <div class="mt-4 grid gap-3 md:grid-cols-2 text-sm">
+            <div class="rounded-2xl border border-slate-200 p-4">Type: <strong>{{ report.period.get_reporting_type_display }}</strong></div>
+            <div class="rounded-2xl border border-slate-200 p-4">Date range: <strong>{{ report.period.start_date }} - {{ report.period.end_date }}</strong></div>
+            <div class="rounded-2xl border border-slate-200 p-4">Status: <strong>{{ report.get_status_display }}</strong></div>
+            <div class="rounded-2xl border border-slate-200 p-4">Date published: <strong>{{ report.published_at|date:'Y-m-d' }}</strong></div>
+        </div>
     </div>
 
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
@@ -62,6 +73,38 @@
             <div><strong>Areas For Improvement:</strong> {{ report.content.areas_for_improvement|default:'-' }}</div>
             <div><strong>Recommendations:</strong> {{ report.content.recommendations|default:'-' }}</div>
             <div><strong>General Comments:</strong> {{ report.content.general_comments|default:'-' }}</div>
+        </div>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-2xl font-semibold">Professional Summary</h2>
+        <div class="mt-4 grid gap-4 md:grid-cols-2 text-sm">
+            <div class="rounded-2xl border border-slate-200 p-4">
+                <p class="font-semibold">Areas of Strength</p>
+                <p class="mt-2 text-slate-700">{{ report.content.strengths|default:'-' }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 p-4">
+                <p class="font-semibold">Areas for Improvement</p>
+                <p class="mt-2 text-slate-700">{{ report.content.areas_for_improvement|default:'-' }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 p-4 md:col-span-2">
+                <p class="font-semibold">Recommendations</p>
+                <p class="mt-2 text-slate-700">{{ report.content.recommendations|default:'-' }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 p-4 md:col-span-2">
+                <p class="font-semibold">General Comments</p>
+                <p class="mt-2 text-slate-700">{{ report.content.general_comments|default:'-' }}</p>
+            </div>
+        </div>
+        <div class="mt-8 grid gap-6 md:grid-cols-2 text-sm">
+            <div>
+                <p class="font-medium text-slate-700">Teacher Signature</p>
+                <div class="mt-6 border-b border-slate-400"></div>
+            </div>
+            <div>
+                <p class="font-medium text-slate-700">Date Published</p>
+                <div class="mt-2">{{ report.published_at|date:'Y-m-d' }}</div>
+            </div>
         </div>
     </div>
 </div>

@@ -20,6 +20,7 @@ class GradeEntrySelectionForm(forms.Form):
     )
     target_class = forms.CharField(
         max_length=64,
+        required=False,
         widget=forms.TextInput(attrs={
             'placeholder': 'Class stream',
             'class': field_class,

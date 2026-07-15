@@ -1,7 +1,8 @@
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import AuditLog, AttendanceRecord, ExamResult, ExamSchedule, FinancialRecord, Payment
+from .models import AuditLog, AttendanceRecord, AttendanceSession, ExamResult, ExamSchedule, FinancialRecord, Payment
+from .synchronization import PortalSynchronizationService
 
 
 def create_audit_log(instance, action):
@@ -26,7 +27,13 @@ def record_payment_save(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=AttendanceRecord)
 def record_attendance_save(sender, instance, created, **kwargs):
+    PortalSynchronizationService.synchronize_attendance_change(instance)
     create_audit_log(instance, 'Attendance recorded' if created else 'Attendance updated')
+
+
+@receiver(post_save, sender=AttendanceSession)
+def record_attendance_session_save(sender, instance, created, **kwargs):
+    create_audit_log(instance, 'Attendance session created' if created else 'Attendance session updated')
 
 
 @receiver(post_save, sender=ExamSchedule)
@@ -52,6 +59,11 @@ def record_payment_delete(sender, instance, **kwargs):
 @receiver(post_delete, sender=AttendanceRecord)
 def record_attendance_delete(sender, instance, **kwargs):
     create_audit_log(instance, 'Attendance deleted')
+
+
+@receiver(post_delete, sender=AttendanceSession)
+def record_attendance_session_delete(sender, instance, **kwargs):
+    create_audit_log(instance, 'Attendance session deleted')
 
 
 @receiver(post_delete, sender=ExamSchedule)

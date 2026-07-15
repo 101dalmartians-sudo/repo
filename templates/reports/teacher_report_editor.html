@@ -67,6 +67,36 @@
         <h2 class="text-xl font-semibold">Teacher Commentary</h2>
         <form method="post" class="mt-4 space-y-4">
             {% csrf_token %}
+            <div class="grid gap-4 lg:grid-cols-2">
+                <div>
+                    <label class="block text-sm font-medium">Grading format</label>
+                    <select name="grading_format" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3">
+                        <option value="percentage" {% if report.content.grading_format == 'percentage' %}selected{% endif %}>Percentage</option>
+                        <option value="letter" {% if report.content.grading_format == 'letter' %}selected{% endif %}>Letter Grade</option>
+                        <option value="points" {% if report.content.grading_format == 'points' %}selected{% endif %}>Points</option>
+                        <option value="custom" {% if report.content.grading_format == 'custom' %}selected{% endif %}>Custom grading scale</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Custom grading scale</label>
+                    <input name="custom_grading_scale" value="{{ report.content.custom_grading_scale }}" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Example: Excellent/Good/Fair/Needs Support">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium">Subjects in this report</label>
+                <div class="mt-3 grid gap-2 md:grid-cols-2">
+                    {% for subject in available_subjects %}
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                        <input type="checkbox" name="selected_subjects" value="{{ subject }}" {% if subject in report.content.selected_subjects %}checked{% endif %}>
+                        <span>{{ subject }}</span>
+                    </label>
+                    {% empty %}
+                    <p class="text-sm text-slate-600">No subject history found yet for this student.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
             <div>
                 <label class="block text-sm font-medium">Strengths</label>
                 <textarea name="strengths" rows="3" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3">{{ report.content.strengths }}</textarea>

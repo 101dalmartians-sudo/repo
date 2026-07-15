@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h1 class="text-3xl font-semibold text-slate-900">Examination Workspace</h1>
+        <p class="mt-2 text-slate-600">Schedule exams once and sync them to student dashboard, notifications, and calendar.</p>
+    </div>
+
+    {% if messages %}
+    <div class="space-y-4">
+        {% for message in messages %}
+        <div class="rounded-2xl border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-800">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-2xl font-semibold text-slate-900">Create exam schedule</h2>
+        <form method="post" class="mt-6 grid gap-4 md:grid-cols-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_exam">
+            <div>{{ exam_form.exam_name.label_tag }}{{ exam_form.exam_name }}</div>
+            <div>{{ exam_form.subject.label_tag }}{{ exam_form.subject }}</div>
+            <div>{{ exam_form.class_stream.label_tag }}{{ exam_form.class_stream }}</div>
+            <div>{{ exam_form.exam_date.label_tag }}{{ exam_form.exam_date }}</div>
+            <div>{{ exam_form.term.label_tag }}{{ exam_form.term }}</div>
+            <div>{{ exam_form.year.label_tag }}{{ exam_form.year }}</div>
+            <div class="md:col-span-2">{{ exam_form.instructions.label_tag }}{{ exam_form.instructions }}</div>
+            <div class="md:col-span-2">
+                <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Publish exam</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-2xl font-semibold text-slate-900">My scheduled exams</h2>
+        <div class="mt-4 overflow-hidden rounded-3xl border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Exam</th>
+                        <th class="px-4 py-3 text-left">Subject</th>
+                        <th class="px-4 py-3 text-left">Class</th>
+                        <th class="px-4 py-3 text-left">Date</th>
+                        <th class="px-4 py-3 text-left">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 bg-white">
+                    {% for exam in exams %}
+                    <tr>
+                        <td class="px-4 py-3">{{ exam.exam_name|default:exam.subject }}</td>
+                        <td class="px-4 py-3">{{ exam.subject }}</td>
+                        <td class="px-4 py-3">{{ exam.target_class|default:'-' }}</td>
+                        <td class="px-4 py-3">{{ exam.exam_date }}</td>
+                        <td class="px-4 py-3"><a class="text-academy hover:underline" href="{% url 'teachers_exam_results_workspace' exam.id %}">Enter results</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="px-4 py-6 text-center text-slate-600">No exams scheduled yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

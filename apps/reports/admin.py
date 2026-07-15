@@ -22,13 +22,13 @@ class ReportingPeriodAdmin(admin.ModelAdmin):
     ]
     list_filter = ['status', 'year', 'term', 'start_date']
     search_fields = ['name']
-    readonly_fields = ['created_by', 'created_at', 'updated_at', 'analytics_link']
+    readonly_fields = ['created_by', 'last_edited_by', 'is_published', 'created_at', 'updated_at', 'analytics_link']
     actions = ['mark_open', 'mark_closed', 'mark_archived']
     actions = ['open_periods', 'close_periods', 'archive_periods']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'term', 'year')
+            'fields': ('name', 'reporting_type', 'term', 'year')
         }),
         ('Period Dates', {
             'fields': ('start_date', 'end_date')
@@ -41,11 +41,14 @@ class ReportingPeriodAdmin(admin.ModelAdmin):
             'fields': ('approval_deadline',),
             'description': 'When admins must approve reports'
         }),
+        ('Publishing', {
+            'fields': ('publish_date', 'is_published')
+        }),
         ('Status', {
             'fields': ('status',)
         }),
         ('Audit Trail', {
-            'fields': ('created_by', 'created_at', 'updated_at'),
+            'fields': ('created_by', 'last_edited_by', 'created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
         ('Analytics', {
@@ -111,6 +114,7 @@ class ReportingPeriodAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not change:
             obj.created_by = request.user
+        obj.last_edited_by = request.user
         super().save_model(request, obj, form, change)
 
     @admin.action(description='Open selected reporting periods')

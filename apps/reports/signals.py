@@ -9,7 +9,9 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.core.cache import cache
 
-from .models import BiWeeklyReport, ReportingAnalytics
+from apps.students.synchronization import PortalSynchronizationService
+
+from .models import BiWeeklyReport, ReportingAnalytics, ReportingPeriod
 from .services import BiWeeklyReportService
 
 
@@ -32,6 +34,9 @@ def synchronize_report_changes(sender, instance, created, **kwargs):
     # Invalidate admin dashboard
     cache.delete('admin_reporting_dashboard')
 
+    if instance.status == 'published':
+        PortalSynchronizationService.synchronize_report_publication(instance)
+
 
 @receiver(post_delete, sender=BiWeeklyReport)
 def synchronize_report_deletion(sender, instance, **kwargs):
@@ -51,3 +56,8 @@ def synchronize_report_deletion(sender, instance, **kwargs):
     
     # Invalidate admin dashboard
     cache.delete('admin_reporting_dashboard')
+
+
+@receiver(post_save, sender=ReportingPeriod)
+def synchronize_reporting_period_changes(sender, instance, **kwargs):
+    PortalSynchronizationService.synchronize_reporting_period(instance)

@@ -4,33 +4,131 @@
 <div class="mx-auto max-w-7xl space-y-6">
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
         <h1 class="text-3xl font-semibold text-slate-900">Bi-Weekly Report Workspace</h1>
-        <p class="mt-2 text-slate-600">Select a cycle and student to draft or update progress communication reports.</p>
+        <p class="mt-2 text-slate-600">Create reporting periods, filter students, and open report builders without leaving this workspace.</p>
+    </div>
+
+    {% if messages %}
+    <div class="space-y-4">
+        {% for message in messages %}
+        <div class="rounded-2xl border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-800">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-xl font-semibold text-slate-900">Create reporting period</h2>
+        <form method="post" class="mt-4 grid gap-4 md:grid-cols-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_period">
+            <div>{{ period_form.name.label_tag }}{{ period_form.name }}</div>
+            <div>{{ period_form.reporting_type.label_tag }}{{ period_form.reporting_type }}</div>
+            <div>{{ period_form.term.label_tag }}{{ period_form.term }}</div>
+            <div>{{ period_form.year.label_tag }}{{ period_form.year }}</div>
+            <div>{{ period_form.start_date.label_tag }}{{ period_form.start_date }}</div>
+            <div>{{ period_form.end_date.label_tag }}{{ period_form.end_date }}</div>
+            <div>{{ period_form.submission_opens.label_tag }}{{ period_form.submission_opens }}</div>
+            <div>{{ period_form.submission_deadline.label_tag }}{{ period_form.submission_deadline }}</div>
+            <div>{{ period_form.approval_deadline.label_tag }}{{ period_form.approval_deadline }}</div>
+            <div>{{ period_form.publish_date.label_tag }}{{ period_form.publish_date }}</div>
+            <div class="md:col-span-2">
+                <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Save draft period</button>
+            </div>
+        </form>
     </div>
 
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
-        <h2 class="text-xl font-semibold text-slate-900">Create or edit report</h2>
-        <form method="post" class="mt-4 grid gap-4 md:grid-cols-2">
+        <h2 class="text-xl font-semibold text-slate-900">Create or edit reports</h2>
+        <form method="get" class="mt-4 grid gap-4 md:grid-cols-4">
+            <input name="search" value="{{ filters.search }}" placeholder="Search student" class="rounded-2xl border border-slate-300 px-4 py-3">
+            <input name="grade" value="{{ filters.grade }}" placeholder="Grade" class="rounded-2xl border border-slate-300 px-4 py-3">
+            <input name="class_stream" value="{{ filters.class_stream }}" placeholder="Class" class="rounded-2xl border border-slate-300 px-4 py-3">
+            <input name="subject_filter" value="{{ filters.subject_filter }}" placeholder="Subject" class="rounded-2xl border border-slate-300 px-4 py-3">
+            <div class="md:col-span-4">
+                <button type="submit" class="rounded-2xl bg-slate-900 px-5 py-3 text-white">Filter students</button>
+            </div>
+        </form>
+
+        <form method="post" class="mt-6 space-y-4">
             {% csrf_token %}
             <div>
                 <label class="block text-sm font-medium text-slate-700">Reporting Period</label>
                 <select name="period_id" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3" required>
                     {% for period in periods %}
-                    <option value="{{ period.id }}">{{ period.name }} ({{ period.start_date }} - {{ period.end_date }})</option>
+                    <option value="{{ period.id }}">{{ period.name }} ({{ period.start_date }} - {{ period.end_date }}) • {{ period.workspace_status|title }}</option>
                     {% endfor %}
                 </select>
             </div>
+
+            <div class="overflow-hidden rounded-3xl border border-slate-200">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left"><input type="checkbox" id="select-all-report-students"></th>
+                            <th class="px-4 py-3 text-left">Student</th>
+                            <th class="px-4 py-3 text-left">Class</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                        {% for student in students %}
+                        <tr>
+                            <td class="px-4 py-3"><input type="checkbox" class="report-student-checkbox" name="selected_students" value="{{ student.id }}"></td>
+                            <td class="px-4 py-3">{{ student.student_id }} - {{ student.user.get_full_name|default:student.user.username }}</td>
+                            <td class="px-4 py-3">{{ student.current_class }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="px-4 py-6 text-center text-slate-600">No students available for the selected filters.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
             <div>
-                <label class="block text-sm font-medium text-slate-700">Student</label>
-                <select name="student_id" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3" required>
-                    {% for student in students %}
-                    <option value="{{ student.id }}">{{ student.student_id }} - {{ student.user.get_full_name|default:student.user.username }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="md:col-span-2">
-                <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Open editor</button>
+                <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Open report builder</button>
             </div>
         </form>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-xl font-semibold text-slate-900">Manage reporting periods</h2>
+        <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Period</th>
+                        <th class="px-4 py-3 text-left">Type</th>
+                        <th class="px-4 py-3 text-left">Status</th>
+                        <th class="px-4 py-3 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 bg-white">
+                    {% for period in periods %}
+                    <tr>
+                        <td class="px-4 py-3">{{ period.name }} ({{ period.start_date }} - {{ period.end_date }})</td>
+                        <td class="px-4 py-3">{{ period.get_reporting_type_display }}</td>
+                        <td class="px-4 py-3">{{ period.workspace_status|title }}</td>
+                        <td class="px-4 py-3">
+                            {% if period.workspace_status == 'draft' %}
+                            <form method="post" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="publish_period">
+                                <input type="hidden" name="period_id" value="{{ period.id }}">
+                                <button type="submit" class="text-academy hover:underline">Publish</button>
+                            </form>
+                            {% endif %}
+                            {% if period.workspace_status != 'archived' %}
+                            <form method="post" class="ml-4 inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="archive_period">
+                                <input type="hidden" name="period_id" value="{{ period.id }}">
+                                <button type="submit" class="text-red-700 hover:underline">Archive</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
@@ -67,4 +165,15 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+    const selectAllReportStudents = document.getElementById('select-all-report-students');
+    if (selectAllReportStudents) {
+        selectAllReportStudents.addEventListener('change', function () {
+            document.querySelectorAll('.report-student-checkbox').forEach(function (checkbox) {
+                checkbox.checked = selectAllReportStudents.checked;
+            });
+        });
+    }
+</script>
 {% endblock %}

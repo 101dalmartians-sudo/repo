@@ -22,9 +22,18 @@ class ReportingPeriod(models.Model):
         ('closed', 'Closed'),
         ('archived', 'Archived'),
     ]
+
+    REPORTING_TYPE_CHOICES = [
+        ('bi_weekly', 'Bi-weekly'),
+        ('monthly', 'Monthly'),
+        ('mid_term', 'Mid-Term'),
+        ('end_term', 'End-of-Term'),
+        ('custom', 'Custom'),
+    ]
     
     name = models.CharField(max_length=100)
     # e.g., "Week 1-2 of Term 1" or "June 23-July 6, 2026"
+    reporting_type = models.CharField(max_length=20, choices=REPORTING_TYPE_CHOICES, default='bi_weekly')
     
     start_date = models.DateField()
     end_date = models.DateField()
@@ -41,11 +50,14 @@ class ReportingPeriod(models.Model):
     submission_opens = models.DateTimeField()  # When teachers can start creating reports
     submission_deadline = models.DateTimeField()  # When teachers must submit by
     approval_deadline = models.DateTimeField()  # When admin must approve by
+    publish_date = models.DateField(null=True, blank=True)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
     
     # Audit trail
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='reporting_periods_created')
+    last_edited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reporting_periods_edited')
+    is_published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -61,8 +73,14 @@ class ReportingPeriod(models.Model):
         if self.end_date < self.start_date:
             raise ValidationError({'end_date': 'End date cannot be earlier than start date.'})
         span_days = (self.end_date - self.start_date).days
-        if span_days not in (13, 14):
+        if self.reporting_type == 'bi_weekly' and span_days not in (13, 14):
             raise ValidationError({'end_date': 'Bi-weekly reporting periods should cover approximately 14 days.'})
+
+    @property
+    def workspace_status(self):
+        if self.status == 'archived':
+            return 'archived'
+        return 'published' if self.is_published else 'draft'
     
     def is_open_for_submission(self):
         """Check if submission window is currently open"""
