@@ -12,6 +12,14 @@ class Grade(models.Model):
     cambridge_letter_grade = models.CharField(max_length=4, blank=True)
     term = models.CharField(max_length=32)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['student', 'subject', 'term'],
+                name='unique_grade_per_student_subject_term',
+            ),
+        ]
+
     def save(self, *args, **kwargs):
         if self.percentage is not None:
             self.cambridge_letter_grade = self.calculate_cambridge_grade(self.percentage)

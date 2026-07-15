@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
 
 from apps.grades.forms import GradeEntrySelectionForm
 from apps.grades.models import Grade
+from apps.grades.services import AcademicService
 from apps.students.models import StudentProfile
-from apps.teachers.selectors import get_filtered_students
 
 
 @login_required
@@ -24,70 +25,52 @@ def entry(request):
         messages.error(request, 'Only teacher accounts may enter grades.')
         return redirect('accounts:accounts_home')
 
-    students = []
-    form = GradeEntrySelectionForm(request.POST or request.GET or None)
+    students = StudentProfile.objects.filter(approved=True).select_related('user').order_by(
+        'user__first_name', 'user__last_name', 'student_id'
+    )
+    selected_student = None
+    selected_student_id = (request.POST.get('student_id') or request.GET.get('student_id') or '').strip()
+    form = GradeEntrySelectionForm(request.POST or None)
+
+    if selected_student_id:
+        selected_student = get_object_or_404(students, pk=selected_student_id)
 
     if request.method == 'POST':
-        if form.is_valid():
+        if not selected_student:
+            messages.error(request, 'Select a student before entering a grade.')
+        elif form.is_valid():
             subject = form.cleaned_data['subject']
             term = form.cleaned_data['term']
-            selected_students = request.POST.getlist('selected_students')
-            saved_count = 0
+            percentage_raw = (request.POST.get('percentage') or '').strip()
 
-            if selected_students:
-                for student_id in selected_students:
-                    percentage_raw = request.POST.get(f'percentage_{student_id}', '').strip()
-                    if not percentage_raw:
-                        continue
-                    try:
-                        student = StudentProfile.objects.get(pk=student_id)
-                        percentage = float(percentage_raw)
-                    except (StudentProfile.DoesNotExist, ValueError):
-                        continue
+            try:
+                percentage = float(percentage_raw)
+            except ValueError:
+                percentage = None
 
-                    Grade.objects.update_or_create(
-                        student=student,
-                        subject=subject,
-                        term=term,
-                        defaults={'percentage': percentage},
-                    )
-                    saved_count += 1
+            if percentage is None:
+                messages.error(request, 'Enter a valid percentage before saving.')
             else:
-                # Backward compatibility for previous payload shape.
-                student_ids = request.POST.getlist('student_id')
-                percentages = request.POST.getlist('percentage')
-                for student_id, percentage_raw in zip(student_ids, percentages):
-                    try:
-                        student = StudentProfile.objects.get(pk=student_id)
-                        percentage = float(percentage_raw)
-                    except (StudentProfile.DoesNotExist, ValueError):
-                        continue
+                result = AcademicService.create_or_update_grade(
+                    selected_student,
+                    subject,
+                    percentage,
+                    term,
+                    user=request.user,
+                )
+                if result['success']:
+                    messages.success(request, f'Grade saved successfully for {selected_student}.')
+                    return redirect(f"{reverse('grades_entry')}?student_id={selected_student.id}")
 
-                    Grade.objects.update_or_create(
-                        student=student,
-                        subject=subject,
-                        term=term,
-                        defaults={'percentage': percentage},
-                    )
-                    saved_count += 1
-
-            messages.success(request, f'Grades saved successfully for {saved_count} student(s).')
-            return redirect('grades_entry')
-    else:
-        if form.is_valid():
-            should_load = request.GET.get('load') == '1' or bool(request.GET)
-            if should_load:
-                students = get_filtered_students(request.GET)[:250]
+                messages.error(request, result['message'])
 
     return render(request, 'grades/entry.html', {
         'form': form,
         'students': students,
-        'filters': {
-            'search': (request.GET.get('search') or '').strip(),
-            'grade': (request.GET.get('grade') or '').strip(),
-            'class_stream': (request.GET.get('class_stream') or '').strip(),
-            'subject_filter': (request.GET.get('subject_filter') or '').strip(),
-        },
+        'selected_student': selected_student,
+        'selected_student_id': selected_student.id if selected_student else '',
+        'student_search': (request.GET.get('student_search') or '').strip(),
+        'existing_grades': Grade.objects.filter(student=selected_student).order_by('term', 'subject') if selected_student else [],
     })
 
 

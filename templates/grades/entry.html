@@ -3,7 +3,7 @@
 {% block content %}
 <div class="mx-auto max-w-6xl space-y-6">
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
-        <h1 class="text-3xl font-semibold text-slate-900">Bulk Grade Entry</h1>
+        <h1 class="text-3xl font-semibold text-slate-900">Grade Entry</h1>
         {% if messages %}
             <div class="mt-4 space-y-4">
                 {% for message in messages %}
@@ -14,90 +14,121 @@
     </div>
 
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
-        <h2 class="text-2xl font-semibold text-slate-900">Grade metadata</h2>
-        <form method="get" class="mt-6 grid gap-4 lg:grid-cols-3">
+        <h2 class="text-2xl font-semibold text-slate-900">Select student</h2>
+        <p class="mt-2 text-slate-600">Search by full name or student ID, then choose the student by name and grade/class to open the grade form.</p>
+        <form method="get" id="student-selector-form" class="mt-6 grid gap-4 lg:grid-cols-[1fr_1.2fr]">
             <div>
-                {{ form.subject.label_tag }}
-                {{ form.subject }}
+                <label for="student-search" class="block text-sm font-medium text-slate-700">Search student</label>
+                <input id="student-search" name="student_search" value="{{ student_search }}" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" placeholder="Type student name or ID">
             </div>
             <div>
-                {{ form.term.label_tag }}
-                {{ form.term }}
+                <label for="student-selector" class="block text-sm font-medium text-slate-700">All students</label>
+                <p class="mt-1 text-xs text-slate-500">Each entry shows full name, grade/class, and student ID.</p>
+                <select id="student-selector" name="student_id" size="8" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3">
+                    {% for student in students %}
+                    <option value="{{ student.id }}" data-search="{{ student.user.get_full_name|default:student.user.username }} {{ student.student_id }} {{ student.current_class }}" {% if selected_student_id == student.id %}selected{% endif %}>
+                        {{ student.user.get_full_name|default:student.user.username }} | Grade/Class: {{ student.current_class }} | ID: {{ student.student_id }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
-            <div>
-                {{ form.target_class.label_tag }}
-                {{ form.target_class }}
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Search student</label>
-                <input name="search" value="{{ filters.search }}" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" placeholder="Name or student ID">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Grade</label>
-                <input name="grade" value="{{ filters.grade }}" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" placeholder="Grade filter">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Class</label>
-                <input name="class_stream" value="{{ filters.class_stream }}" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" placeholder="Class filter">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Subject filter</label>
-                <input name="subject_filter" value="{{ filters.subject_filter }}" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" placeholder="Optional subject match">
-            </div>
-            <input type="hidden" name="load" value="1">
-            <div class="lg:col-span-3">
-                <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white shadow-sm transition hover:bg-red-700">Load students</button>
+            <div class="lg:col-span-2">
+                <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white shadow-sm transition hover:bg-red-700">Open student</button>
             </div>
         </form>
     </div>
 
-    {% if students %}
+    {% if selected_student %}
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-semibold text-slate-900">Enter grade</h2>
+                <p class="mt-2 text-slate-600">{{ selected_student.user.get_full_name|default:selected_student.user.username }} | Grade/Class: {{ selected_student.current_class }} | ID: {{ selected_student.student_id }}</p>
+            </div>
+        </div>
         <form method="post" class="space-y-6">
             {% csrf_token %}
-            <input type="hidden" name="subject" value="{{ form.subject.value }}">
-            <input type="hidden" name="term" value="{{ form.term.value }}">
-            <input type="hidden" name="target_class" value="{{ form.target_class.value }}">
+            <input type="hidden" name="student_id" value="{{ selected_student.id }}">
 
-            <div class="overflow-hidden rounded-3xl border border-slate-200">
-                <table class="min-w-full divide-y divide-slate-200">
+            <div class="grid gap-4 lg:grid-cols-2">
+                <div>
+                    {{ form.subject.label_tag }}
+                    {{ form.subject }}
+                </div>
+                <div>
+                    {{ form.term.label_tag }}
+                    {{ form.term }}
+                </div>
+                <div class="lg:col-span-2">
+                    <label for="id_percentage" class="block text-sm font-medium text-slate-700">Percentage</label>
+                    <input id="id_percentage" class="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3" type="number" step="0.01" min="0" max="100" name="percentage" placeholder="Enter percentage score">
+                </div>
+            </div>
+
+            <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white shadow-sm transition hover:bg-red-700">Save grades</button>
+        </form>
+
+        <div class="mt-8">
+            <h3 class="text-lg font-semibold text-slate-900">Existing grade records</h3>
+            {% if existing_grades %}
+            <div class="mt-4 overflow-hidden rounded-3xl border border-slate-200">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-100">
                         <tr>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700"><input type="checkbox" id="select-all-students"></th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Student</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Class</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Percentage</th>
+                            <th class="px-4 py-3 text-left">Subject</th>
+                            <th class="px-4 py-3 text-left">Term</th>
+                            <th class="px-4 py-3 text-left">Percentage</th>
+                            <th class="px-4 py-3 text-left">Grade</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 bg-white">
-                        {% for student in students %}
+                        {% for grade in existing_grades %}
                         <tr>
-                            <td class="px-6 py-4"><input type="checkbox" class="selected-student" name="selected_students" value="{{ student.pk }}"></td>
-                            <td class="whitespace-nowrap px-6 py-4 text-sm text-slate-900">{{ student.user.get_full_name|default:student.user.username }}</td>
-                            <td class="whitespace-nowrap px-6 py-4 text-sm text-slate-600">{{ student.current_class }}</td>
-                            <td class="px-6 py-4">
-                                <input type="hidden" name="student_id" value="{{ student.pk }}">
-                                <input class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2" type="number" step="0.01" min="0" max="100" name="percentage_{{ student.pk }}">
-                            </td>
+                            <td class="px-4 py-3">{{ grade.subject }}</td>
+                            <td class="px-4 py-3">{{ grade.term }}</td>
+                            <td class="px-4 py-3">{{ grade.percentage }}</td>
+                            <td class="px-4 py-3">{{ grade.cambridge_letter_grade }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white shadow-sm transition hover:bg-red-700">Save grades</button>
-        </form>
+            {% else %}
+            <p class="mt-4 text-slate-600">No grades saved yet for this student.</p>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 </div>
 
 <script>
-    const selectAllStudents = document.getElementById('select-all-students');
-    if (selectAllStudents) {
-        selectAllStudents.addEventListener('change', function () {
-            document.querySelectorAll('.selected-student').forEach(function (checkbox) {
-                checkbox.checked = selectAllStudents.checked;
+    const studentSearch = document.getElementById('student-search');
+    const studentSelector = document.getElementById('student-selector');
+
+    if (studentSearch && studentSelector) {
+        const filterOptions = function () {
+            const query = studentSearch.value.toLowerCase().trim();
+            let firstVisibleOption = null;
+
+            Array.from(studentSelector.options).forEach(function (option) {
+                const searchValue = (option.dataset.search || option.textContent).toLowerCase();
+                const visible = !query || searchValue.includes(query);
+                option.hidden = !visible;
+                if (visible && !firstVisibleOption) {
+                    firstVisibleOption = option;
+                }
             });
+
+            if (firstVisibleOption) {
+                firstVisibleOption.selected = true;
+            }
+        };
+
+        studentSearch.addEventListener('input', filterOptions);
+        studentSelector.addEventListener('change', function () {
+            document.getElementById('student-selector-form').submit();
         });
+        filterOptions();
     }
 </script>
 {% endblock %}

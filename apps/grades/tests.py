@@ -1,10 +1,13 @@
 from decimal import Decimal
+from django.db import IntegrityError
 from django.contrib.auth.models import User
 from django.test import TestCase, TransactionTestCase
+from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 
 from apps.students.models import StudentProfile, ExamSchedule, ExamResult
+from apps.teachers.models import TeacherProfile
 from apps.notifications.models import Notification
 from apps.grades.services import AcademicService
 from .models import Grade
@@ -22,6 +25,22 @@ class GradeModelTests(TestCase):
     def test_grade_calculation_a_star(self):
         grade = Grade(percentage=85, subject='Math', term='Term 1', student=self.student_profile)
         self.assertEqual(grade.calculate_cambridge_grade(grade.percentage), 'A*')
+
+    def test_grade_key_is_unique_per_student_subject_term(self):
+        Grade.objects.create(
+            percentage=85,
+            subject='Math',
+            term='Term 1',
+            student=self.student_profile,
+        )
+
+        with self.assertRaises(IntegrityError):
+            Grade.objects.create(
+                percentage=70,
+                subject='Math',
+                term='Term 1',
+                student=self.student_profile,
+            )
 
 
 # ============================================================================
@@ -359,3 +378,41 @@ class PerformanceReportTests(TestCase):
         grade = Grade(subject='Science', term='Term 2', percentage=76, student=self.student)
         grade.save()
         self.assertEqual(grade.cambridge_letter_grade, 'A')
+
+
+class GradeEntryViewTests(TestCase):
+    def setUp(self):
+        self.teacher_user = User.objects.create_user('teacher-entry', 'teacher-entry@example.com', 'password')
+        TeacherProfile.objects.create(user=self.teacher_user, department='Science', approved=True)
+
+        student_user = User.objects.create_user('student-entry', 'student-entry@example.com', 'password')
+        self.student = StudentProfile.objects.create(
+            user=student_user,
+            student_id='STU100',
+            current_class='Form 2',
+            approved=True,
+        )
+
+    def test_teacher_can_open_student_first_grade_entry(self):
+        self.client.login(username='teacher-entry', password='password')
+        response = self.client.get(reverse('grades_entry'), {'student_id': self.student.id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Select student')
+        self.assertContains(response, 'Enter grade')
+        self.assertContains(response, self.student.student_id)
+
+    def test_teacher_can_save_grade_for_selected_student(self):
+        self.client.login(username='teacher-entry', password='password')
+        response = self.client.post(reverse('grades_entry'), {
+            'student_id': self.student.id,
+            'subject': 'Mathematics',
+            'term': 'term1',
+            'percentage': '83.5',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        grade = Grade.objects.get(student=self.student, subject='Mathematics', term='term1')
+        self.assertEqual(float(grade.percentage), 83.5)
+        self.assertEqual(grade.cambridge_letter_grade, 'A*')
+        self.assertTrue(Notification.objects.filter(recipient=self.student.user, title__icontains='Grade').exists())

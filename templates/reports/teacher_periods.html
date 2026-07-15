@@ -3,8 +3,14 @@
 {% block content %}
 <div class="mx-auto max-w-7xl space-y-6">
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
-        <h1 class="text-3xl font-semibold text-slate-900">Bi-Weekly Report Workspace</h1>
-        <p class="mt-2 text-slate-600">Create reporting periods, filter students, and open report builders without leaving this workspace.</p>
+        <h1 class="text-3xl font-semibold text-slate-900">Reports Workspace</h1>
+        <p class="mt-2 text-slate-600">Open report builders, review in-progress reports, manage reporting periods, and reach related reporting tools from one familiar workspace.</p>
+        <div class="mt-6 flex flex-wrap gap-3 text-sm">
+            <a href="#report-builder" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-slate-700 hover:border-academy hover:text-academy">Create report</a>
+            <a href="#draft-reports" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-slate-700 hover:border-academy hover:text-academy">Draft reports</a>
+            <a href="#reporting-periods" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-slate-700 hover:border-academy hover:text-academy">Reporting periods</a>
+            <a href="#report-history" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-slate-700 hover:border-academy hover:text-academy">Report history</a>
+        </div>
     </div>
 
     {% if messages %}
@@ -16,28 +22,70 @@
     {% endif %}
 
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
-        <h2 class="text-xl font-semibold text-slate-900">Create reporting period</h2>
-        <form method="post" class="mt-4 grid gap-4 md:grid-cols-2">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="create_period">
-            <div>{{ period_form.name.label_tag }}{{ period_form.name }}</div>
-            <div>{{ period_form.reporting_type.label_tag }}{{ period_form.reporting_type }}</div>
-            <div>{{ period_form.term.label_tag }}{{ period_form.term }}</div>
-            <div>{{ period_form.year.label_tag }}{{ period_form.year }}</div>
-            <div>{{ period_form.start_date.label_tag }}{{ period_form.start_date }}</div>
-            <div>{{ period_form.end_date.label_tag }}{{ period_form.end_date }}</div>
-            <div>{{ period_form.submission_opens.label_tag }}{{ period_form.submission_opens }}</div>
-            <div>{{ period_form.submission_deadline.label_tag }}{{ period_form.submission_deadline }}</div>
-            <div>{{ period_form.approval_deadline.label_tag }}{{ period_form.approval_deadline }}</div>
-            <div>{{ period_form.publish_date.label_tag }}{{ period_form.publish_date }}</div>
-            <div class="md:col-span-2">
-                <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Save draft period</button>
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-semibold text-slate-900">Most used tasks</h2>
+                <p class="mt-2 text-slate-600">Start with the actions teachers use most often during a reporting cycle.</p>
             </div>
-        </form>
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                <p>Drafts ready: <strong>{{ report_status_groups.drafts|length }}</strong></p>
+                <p>Published reports: <strong>{{ report_status_groups.published|length }}</strong></p>
+            </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 lg:grid-cols-3">
+            <a href="{% url 'grades_entry' %}" class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm hover:border-academy hover:bg-white">
+                <h3 class="text-lg font-semibold text-slate-900">Enter Grades</h3>
+                <p class="mt-2 text-sm text-slate-600">Update grade records first so report marks and grades stay current everywhere.</p>
+            </a>
+            <a href="#report-builder" class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm hover:border-academy hover:bg-white">
+                <h3 class="text-lg font-semibold text-slate-900">Create Report</h3>
+                <p class="mt-2 text-sm text-slate-600">Choose a reporting period, select students, and open the official report builder.</p>
+            </a>
+            <a href="#draft-reports" class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm hover:border-academy hover:bg-white">
+                <h3 class="text-lg font-semibold text-slate-900">Draft Reports</h3>
+                <p class="mt-2 text-sm text-slate-600">Return to unfinished reports that are ready for editing or submission.</p>
+            </a>
+        </div>
     </div>
 
-    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
-        <h2 class="text-xl font-semibold text-slate-900">Create or edit reports</h2>
+    <div class="grid gap-4 lg:grid-cols-3">
+        <a href="{% url 'grades_entry' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200 hover:border-academy">
+            <h2 class="text-lg font-semibold text-slate-900">Enter Grades</h2>
+            <p class="mt-2 text-sm text-slate-600">Open the student-first grade entry screen and update grade records.</p>
+        </a>
+        <a href="{% url 'teachers_attendance_workspace' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200 hover:border-academy">
+            <h2 class="text-lg font-semibold text-slate-900">Attendance</h2>
+            <p class="mt-2 text-sm text-slate-600">Record attendance sessions that continue feeding report and student views.</p>
+        </a>
+        <a href="{% url 'teachers_exams_workspace' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200 hover:border-academy">
+            <h2 class="text-lg font-semibold text-slate-900">Exam Schedule</h2>
+            <p class="mt-2 text-sm text-slate-600">Manage exams and publish schedules using the existing teacher exam tools.</p>
+        </a>
+        <a href="{% url 'teachers_exams_workspace' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200 hover:border-academy">
+            <h2 class="text-lg font-semibold text-slate-900">Exam Results</h2>
+            <p class="mt-2 text-sm text-slate-600">Continue recording exam results that synchronize with student records and reports.</p>
+        </a>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200">
+            <h2 class="text-lg font-semibold text-slate-900">Draft Reports</h2>
+            <p class="mt-2 text-sm text-slate-600">{{ report_status_groups.drafts|length }} recent draft reports are ready for editing or submission.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200">
+            <h2 class="text-lg font-semibold text-slate-900">Published Reports</h2>
+            <p class="mt-2 text-sm text-slate-600">{{ report_status_groups.published|length }} recent published reports are visible from this teacher account.</p>
+        </div>
+    </div>
+
+    <div id="report-builder" class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200 scroll-mt-24">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Create Report</h2>
+                <p class="mt-2 text-sm text-slate-600">Search students, choose a reporting period, and open the official report builder.</p>
+            </div>
+            <a href="#reporting-periods" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 hover:border-academy hover:text-academy">Need a new reporting period?</a>
+        </div>
+
+        <p class="mt-2 text-sm text-slate-600">Search students, choose a reporting period, and open the official report builder.</p>
         <form method="get" class="mt-4 grid gap-4 md:grid-cols-4">
             <input name="search" value="{{ filters.search }}" placeholder="Search student" class="rounded-2xl border border-slate-300 px-4 py-3">
             <input name="grade" value="{{ filters.grade }}" placeholder="Grade" class="rounded-2xl border border-slate-300 px-4 py-3">
@@ -88,51 +136,132 @@
         </form>
     </div>
 
-    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
-        <h2 class="text-xl font-semibold text-slate-900">Manage reporting periods</h2>
-        <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-100">
-                    <tr>
-                        <th class="px-4 py-3 text-left">Period</th>
-                        <th class="px-4 py-3 text-left">Type</th>
-                        <th class="px-4 py-3 text-left">Status</th>
-                        <th class="px-4 py-3 text-left">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200 bg-white">
-                    {% for period in periods %}
-                    <tr>
-                        <td class="px-4 py-3">{{ period.name }} ({{ period.start_date }} - {{ period.end_date }})</td>
-                        <td class="px-4 py-3">{{ period.get_reporting_type_display }}</td>
-                        <td class="px-4 py-3">{{ period.workspace_status|title }}</td>
-                        <td class="px-4 py-3">
-                            {% if period.workspace_status == 'draft' %}
-                            <form method="post" class="inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="publish_period">
-                                <input type="hidden" name="period_id" value="{{ period.id }}">
-                                <button type="submit" class="text-academy hover:underline">Publish</button>
-                            </form>
-                            {% endif %}
-                            {% if period.workspace_status != 'archived' %}
-                            <form method="post" class="ml-4 inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="archive_period">
-                                <input type="hidden" name="period_id" value="{{ period.id }}">
-                                <button type="submit" class="text-red-700 hover:underline">Archive</button>
-                            </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
+        <div id="draft-reports" class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200 scroll-mt-24">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-slate-900">Draft Reports</h2>
+                    <p class="mt-2 text-sm text-slate-600">Continue the reports that are still in progress or waiting to be submitted.</p>
+                </div>
+                <a href="#report-history" class="text-sm text-academy hover:underline">View report history</a>
+            </div>
+
+            {% if report_status_groups.drafts %}
+            <div class="mt-4 space-y-3 text-sm">
+                {% for report in report_status_groups.drafts %}
+                <a href="{% url 'reports:teacher_report_editor' report.period.id report.student.id %}" class="block rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:border-academy">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="font-semibold text-slate-900">{{ report.student }}</p>
+                            <p class="mt-1 text-slate-600">{{ report.period.name }}</p>
+                        </div>
+                        <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">{{ report.get_status_display }}</span>
+                    </div>
+                    <p class="mt-3 text-xs text-slate-500">Last updated {{ report.updated_at|date:'Y-m-d H:i' }}</p>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="mt-4 text-slate-600">No draft reports are waiting for action.</p>
+            {% endif %}
+        </div>
+
+        <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+            <h2 class="text-xl font-semibold text-slate-900">Published Reports</h2>
+            <p class="mt-2 text-sm text-slate-600">Quick access to reports that have already been approved and published.</p>
+            {% if report_status_groups.published %}
+            <div class="mt-4 space-y-3 text-sm">
+                {% for report in report_status_groups.published %}
+                <a href="{% url 'reports:teacher_report_editor' report.period.id report.student.id %}" class="block rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:border-academy">
+                    <p class="font-semibold text-slate-900">{{ report.student }}</p>
+                    <p class="mt-1 text-slate-600">{{ report.period.name }}</p>
+                    <p class="mt-3 text-xs text-slate-500">Published record updated {{ report.updated_at|date:'Y-m-d H:i' }}</p>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="mt-4 text-slate-600">No published reports yet.</p>
+            {% endif %}
         </div>
     </div>
 
-    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
-        <h2 class="text-xl font-semibold text-slate-900">My recent reports</h2>
+    <div id="reporting-periods" class="grid gap-6 xl:grid-cols-[1.1fr_1fr] scroll-mt-24">
+        <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+            <h2 class="text-xl font-semibold text-slate-900">Create Reporting Period</h2>
+            <p class="mt-2 text-sm text-slate-600">Set up the reporting window teachers will use for drafting, submission, approval, and publishing.</p>
+            <form method="post" class="mt-4 grid gap-4 md:grid-cols-2">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_period">
+                <div>{{ period_form.name.label_tag }}{{ period_form.name }}</div>
+                <div>{{ period_form.reporting_type.label_tag }}{{ period_form.reporting_type }}</div>
+                <div>{{ period_form.term.label_tag }}{{ period_form.term }}</div>
+                <div>{{ period_form.year.label_tag }}{{ period_form.year }}</div>
+                <div>{{ period_form.start_date.label_tag }}{{ period_form.start_date }}</div>
+                <div>{{ period_form.end_date.label_tag }}{{ period_form.end_date }}</div>
+                <div>{{ period_form.submission_opens.label_tag }}{{ period_form.submission_opens }}</div>
+                <div>{{ period_form.submission_deadline.label_tag }}{{ period_form.submission_deadline }}</div>
+                <div>{{ period_form.approval_deadline.label_tag }}{{ period_form.approval_deadline }}</div>
+                <div>{{ period_form.publish_date.label_tag }}{{ period_form.publish_date }}</div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Save draft period</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+            <h2 class="text-xl font-semibold text-slate-900">Manage Reporting Periods</h2>
+            <p class="mt-2 text-sm text-slate-600">Publish or archive existing periods without leaving the workspace.</p>
+            <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left">Period</th>
+                            <th class="px-4 py-3 text-left">Type</th>
+                            <th class="px-4 py-3 text-left">Status</th>
+                            <th class="px-4 py-3 text-left">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                        {% for period in periods %}
+                        <tr>
+                            <td class="px-4 py-3">{{ period.name }} ({{ period.start_date }} - {{ period.end_date }})</td>
+                            <td class="px-4 py-3">{{ period.get_reporting_type_display }}</td>
+                            <td class="px-4 py-3">{{ period.workspace_status|title }}</td>
+                            <td class="px-4 py-3">
+                                {% if period.workspace_status == 'draft' %}
+                                <form method="post" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="publish_period">
+                                    <input type="hidden" name="period_id" value="{{ period.id }}">
+                                    <button type="submit" class="text-academy hover:underline">Publish</button>
+                                </form>
+                                {% endif %}
+                                {% if period.workspace_status != 'archived' %}
+                                <form method="post" class="ml-4 inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="archive_period">
+                                    <input type="hidden" name="period_id" value="{{ period.id }}">
+                                    <button type="submit" class="text-red-700 hover:underline">Archive</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="report-history" class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200 scroll-mt-24">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Report History</h2>
+                <p class="mt-2 text-sm text-slate-600">Review your recent report activity across draft, submitted, approved, and published work.</p>
+            </div>
+            <a href="#draft-reports" class="text-sm text-academy hover:underline">Back to drafts</a>
+        </div>
+
         {% if my_reports %}
         <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200">
             <table class="min-w-full divide-y divide-slate-200 text-sm">

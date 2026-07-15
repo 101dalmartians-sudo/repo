@@ -30,7 +30,7 @@
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
         <h2 class="text-2xl font-semibold">Academic Performance</h2>
         <p class="mt-2 text-sm text-slate-600">Average: {{ academic.average_percentage|floatformat:2 }}%</p>
-        {% if academic.grades %}
+        {% if subject_rows %}
         <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-100">
@@ -38,14 +38,16 @@
                         <th class="px-4 py-3 text-left">Subject</th>
                         <th class="px-4 py-3 text-left">Percentage</th>
                         <th class="px-4 py-3 text-left">Grade</th>
+                        <th class="px-4 py-3 text-left">Teacher Comment</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 bg-white">
-                    {% for grade in academic.grades %}
+                    {% for grade in subject_rows %}
                     <tr>
                         <td class="px-4 py-3">{{ grade.subject }}</td>
                         <td class="px-4 py-3">{{ grade.percentage }}</td>
                         <td class="px-4 py-3">{{ grade.cambridge_letter_grade }}</td>
+                        <td class="px-4 py-3">{{ grade.comment|default:'-' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -69,10 +71,11 @@
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
         <h2 class="text-2xl font-semibold">Teacher Commentary</h2>
         <div class="mt-4 space-y-3 text-sm">
-            <div><strong>Strengths:</strong> {{ report.content.strengths|default:'-' }}</div>
-            <div><strong>Areas For Improvement:</strong> {{ report.content.areas_for_improvement|default:'-' }}</div>
-            <div><strong>Recommendations:</strong> {{ report.content.recommendations|default:'-' }}</div>
-            <div><strong>General Comments:</strong> {{ report.content.general_comments|default:'-' }}</div>
+            <div><strong>Strengths:</strong> {{ report_content.strengths|default:'-' }}</div>
+            <div><strong>Areas For Improvement:</strong> {{ report_content.areas_for_improvement|default:'-' }}</div>
+            <div><strong>Recommendations:</strong> {{ report_content.recommendations|default:'-' }}</div>
+            <div><strong>General Comments:</strong> {{ report_content.general_comments|default:'-' }}</div>
+            <div><strong>Additional Comments:</strong> {{ report_content.additional_comments|default:'-' }}</div>
         </div>
     </div>
 
@@ -81,19 +84,23 @@
         <div class="mt-4 grid gap-4 md:grid-cols-2 text-sm">
             <div class="rounded-2xl border border-slate-200 p-4">
                 <p class="font-semibold">Areas of Strength</p>
-                <p class="mt-2 text-slate-700">{{ report.content.strengths|default:'-' }}</p>
+                <p class="mt-2 text-slate-700">{{ report_content.strengths|default:'-' }}</p>
             </div>
             <div class="rounded-2xl border border-slate-200 p-4">
                 <p class="font-semibold">Areas for Improvement</p>
-                <p class="mt-2 text-slate-700">{{ report.content.areas_for_improvement|default:'-' }}</p>
+                <p class="mt-2 text-slate-700">{{ report_content.areas_for_improvement|default:'-' }}</p>
             </div>
             <div class="rounded-2xl border border-slate-200 p-4 md:col-span-2">
                 <p class="font-semibold">Recommendations</p>
-                <p class="mt-2 text-slate-700">{{ report.content.recommendations|default:'-' }}</p>
+                <p class="mt-2 text-slate-700">{{ report_content.recommendations|default:'-' }}</p>
             </div>
             <div class="rounded-2xl border border-slate-200 p-4 md:col-span-2">
                 <p class="font-semibold">General Comments</p>
-                <p class="mt-2 text-slate-700">{{ report.content.general_comments|default:'-' }}</p>
+                <p class="mt-2 text-slate-700">{{ report_content.general_comments|default:'-' }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 p-4 md:col-span-2">
+                <p class="font-semibold">Additional Comments</p>
+                <p class="mt-2 text-slate-700">{{ report_content.additional_comments|default:'-' }}</p>
             </div>
         </div>
         <div class="mt-8 grid gap-6 md:grid-cols-2 text-sm">

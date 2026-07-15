@@ -12,6 +12,7 @@ from datetime import timedelta
 from apps.students.models import StudentProfile
 from apps.accounts.models import AdminProfile
 from apps.teachers.models import TeacherProfile
+from apps.grades.models import Grade
 from apps.reports.models import (
     ReportingPeriod, ReportField, BiWeeklyReport, ReportingAnalytics
 )
@@ -464,7 +465,44 @@ class ReportingViewsIntegrationTests(TestCase):
         self.client.login(username='tview', password='password')
         response = self.client.get(reverse('reports:teacher_periods'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Bi-Weekly Report Workspace')
+        self.assertContains(response, 'Reports Workspace')
+
+    def test_teacher_can_save_subject_comments_in_report_builder(self):
+        Grade.objects.create(
+            student=self.student,
+            subject='Mathematics',
+            percentage=Decimal('88.0'),
+            cambridge_letter_grade='A*',
+            term='term1',
+        )
+        Grade.objects.create(
+            student=self.student,
+            subject='English',
+            percentage=Decimal('72.0'),
+            cambridge_letter_grade='A',
+            term='term1',
+        )
+
+        self.client.login(username='tview', password='password')
+        response = self.client.post(reverse('reports:teacher_report_editor', args=[self.period.id, self.student.id]), {
+            'selected_subjects': ['Mathematics'],
+            'subject_comment_Mathematics': 'Strong problem solving.',
+            'subject_comment_English': 'Keep reading daily.',
+            'strengths': 'Consistent effort',
+            'areas_for_improvement': 'Written expression',
+            'recommendations': 'More revision',
+            'general_comments': 'Good progress',
+            'additional_comments': 'Ready for the next reporting cycle',
+            'grading_format': 'percentage',
+            'custom_grading_scale': '',
+            'action': 'save',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        report = BiWeeklyReport.objects.get(period=self.period, student=self.student)
+        self.assertEqual(report.content['selected_subjects'], ['Mathematics'])
+        self.assertEqual(report.content['subject_comments']['Mathematics'], 'Strong problem solving.')
+        self.assertEqual(report.content['additional_comments'], 'Ready for the next reporting cycle')
 
     def test_admin_can_approve_and_publish_report(self):
         report = BiWeeklyReport.objects.create(
@@ -496,11 +534,31 @@ class ReportingViewsIntegrationTests(TestCase):
         self.assertEqual(report.status, 'published')
 
     def test_student_can_view_published_reports(self):
+        Grade.objects.create(
+            student=self.student,
+            subject='Mathematics',
+            percentage=Decimal('85.0'),
+            cambridge_letter_grade='A*',
+            term='term1',
+        )
+        Grade.objects.create(
+            student=self.student,
+            subject='English',
+            percentage=Decimal('65.0'),
+            cambridge_letter_grade='B',
+            term='term1',
+        )
+
         report = BiWeeklyReport.objects.create(
             period=self.period,
             student=self.student,
             teacher=self.teacher_user,
-            content={'general_comments': 'Great job'},
+            content={
+                'general_comments': 'Great job',
+                'additional_comments': 'Maintain momentum',
+                'selected_subjects': ['Mathematics'],
+                'subject_comments': {'Mathematics': 'Excellent work'},
+            },
             status='published',
             published_at=timezone.now(),
         )
@@ -509,8 +567,13 @@ class ReportingViewsIntegrationTests(TestCase):
         response = self.client.get(reverse('reports:student_reports'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Progress Reports')
+        self.assertContains(response, 'Reports Available: 1')
+        self.assertContains(response, 'End of Term Reports')
         self.assertContains(response, self.period.name)
 
         detail = self.client.get(reverse('reports:student_report_detail', args=[report.id]))
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, self.period.name)
+        self.assertContains(detail, 'Excellent work')
+        self.assertContains(detail, 'Maintain momentum')
+        self.assertNotContains(detail, 'English')

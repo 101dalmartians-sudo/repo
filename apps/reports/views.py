@@ -89,6 +89,64 @@ def _log_report_action(actor, action, report):
     )
 
 
+def _report_content_defaults():
+    return {
+        'strengths': '',
+        'areas_for_improvement': '',
+        'recommendations': '',
+        'general_comments': '',
+        'additional_comments': '',
+        'selected_subjects': [],
+        'subject_comments': {},
+        'grading_format': 'percentage',
+        'custom_grading_scale': '',
+    }
+
+
+def _get_subject_rows(report, academic):
+    content = _report_content_defaults()
+    content.update(report.content or {})
+
+    selected_subjects = content.get('selected_subjects') or []
+    selected_set = set(selected_subjects)
+    subject_comments = content.get('subject_comments') or {}
+
+    grade_rows = []
+    for grade in academic['grades']:
+        subject_name = grade['subject']
+        if selected_set and subject_name not in selected_set:
+            continue
+
+        row = dict(grade)
+        row['comment'] = subject_comments.get(subject_name, '')
+        grade_rows.append(row)
+
+    if not selected_subjects:
+        return grade_rows, content
+
+    ordered_rows = []
+    for subject_name in selected_subjects:
+        for row in grade_rows:
+            if row['subject'] == subject_name:
+                ordered_rows.append(row)
+                break
+    return ordered_rows, content
+
+
+def _get_editor_subject_rows(report, academic):
+    _, content = _get_subject_rows(report, academic)
+    subject_comments = content.get('subject_comments') or {}
+
+    rows = []
+    selected_subjects = set(content.get('selected_subjects') or [])
+    for grade in academic['grades']:
+        row = dict(grade)
+        row['comment'] = subject_comments.get(row['subject'], '')
+        row['selected'] = row['subject'] in selected_subjects if selected_subjects else True
+        rows.append(row)
+    return rows
+
+
 @login_required
 def teacher_periods(request):
     if not _teacher_guard(request):
@@ -166,10 +224,17 @@ def teacher_periods(request):
             messages.success(request, f'Report workspace prepared for {len(selected_students)} student(s).')
             return redirect('reports:teacher_report_editor', period_id=period.id, student_id=first_student.id)
 
+    report_status_groups = {
+        'drafts': my_reports.filter(status='draft')[:10],
+        'published': my_reports.filter(status='published')[:10],
+        'history': my_reports.exclude(status='draft')[:10],
+    }
+
     context = {
         'periods': periods,
         'students': students[:200],
         'my_reports': my_reports[:30],
+        'report_status_groups': report_status_groups,
         'period_form': period_form,
         'filters': {
             'search': (request.GET.get('search') or '').strip(),
@@ -193,12 +258,7 @@ def teacher_report_editor(request, period_id, student_id):
         student=student,
         defaults={
             'teacher': request.user,
-            'content': {
-                'strengths': '',
-                'areas_for_improvement': '',
-                'recommendations': '',
-                'general_comments': '',
-            },
+            'content': _report_content_defaults(),
             'status': 'draft',
         },
     )
@@ -208,21 +268,25 @@ def teacher_report_editor(request, period_id, student_id):
     if report.teacher and report.teacher != request.user and not request.user.is_staff:
         raise Http404
 
-    available_subjects = list(
-        Grade.objects.filter(student=student)
-        .order_by('subject')
-        .values_list('subject', flat=True)
-        .distinct()
-    )
+    academic = _compile_academic_snapshot(student, period)
+    subject_rows, content = _get_subject_rows(report, academic)
+    editor_subject_rows = _get_editor_subject_rows(report, academic)
+    available_subjects = [grade['subject'] for grade in academic['grades']]
 
     if request.method == 'POST':
         selected_subjects = request.POST.getlist('selected_subjects')
+        subject_comments = {}
+        for subject_name in available_subjects:
+            subject_comments[subject_name] = request.POST.get(f'subject_comment_{subject_name}', '').strip()
+
         content = {
             'strengths': request.POST.get('strengths', '').strip(),
             'areas_for_improvement': request.POST.get('areas_for_improvement', '').strip(),
             'recommendations': request.POST.get('recommendations', '').strip(),
             'general_comments': request.POST.get('general_comments', '').strip(),
+            'additional_comments': request.POST.get('additional_comments', '').strip(),
             'selected_subjects': selected_subjects,
+            'subject_comments': subject_comments,
             'grading_format': request.POST.get('grading_format', 'percentage').strip() or 'percentage',
             'custom_grading_scale': request.POST.get('custom_grading_scale', '').strip(),
         }
@@ -247,7 +311,9 @@ def teacher_report_editor(request, period_id, student_id):
         else:
             messages.success(request, 'Draft saved successfully.')
 
-    academic = _compile_academic_snapshot(student, period)
+        subject_rows, content = _get_subject_rows(report, academic)
+        editor_subject_rows = _get_editor_subject_rows(report, academic)
+
     return render(
         request,
         'reports/teacher_report_editor.html',
@@ -256,6 +322,9 @@ def teacher_report_editor(request, period_id, student_id):
             'student': student,
             'report': report,
             'academic': academic,
+            'subject_rows': subject_rows,
+            'editor_subject_rows': editor_subject_rows,
+            'report_content': content,
             'available_subjects': available_subjects,
         },
     )
@@ -401,7 +470,14 @@ def student_report_detail(request, report_id):
         status='published',
     )
     academic = _compile_academic_snapshot(report.student, report.period)
-    return render(request, 'reports/student_report_detail.html', {'report': report, 'academic': academic, 'print_mode': False})
+    subject_rows, report_content = _get_subject_rows(report, academic)
+    return render(request, 'reports/student_report_detail.html', {
+        'report': report,
+        'academic': academic,
+        'subject_rows': subject_rows,
+        'report_content': report_content,
+        'print_mode': False,
+    })
 
 
 @login_required
@@ -416,7 +492,14 @@ def student_report_print(request, report_id):
         status='published',
     )
     academic = _compile_academic_snapshot(report.student, report.period)
-    return render(request, 'reports/student_report_detail.html', {'report': report, 'academic': academic, 'print_mode': True})
+    subject_rows, report_content = _get_subject_rows(report, academic)
+    return render(request, 'reports/student_report_detail.html', {
+        'report': report,
+        'academic': academic,
+        'subject_rows': subject_rows,
+        'report_content': report_content,
+        'print_mode': True,
+    })
 
 
 @login_required
@@ -431,6 +514,7 @@ def student_report_download(request, report_id):
         status='published',
     )
     academic = _compile_academic_snapshot(report.student, report.period)
+    subject_rows, report_content = _get_subject_rows(report, academic)
 
     lines = [
         f"Aspire Academy Bi-Weekly Report",
@@ -442,10 +526,11 @@ def student_report_download(request, report_id):
         'Academic Performance',
         f"Average Percentage: {academic['average_percentage']:.2f}",
     ]
-    for grade in academic['grades']:
-        lines.append(
-            f"- {grade['subject']}: {grade['percentage']}% ({grade['cambridge_letter_grade']})"
-        )
+    for grade in subject_rows:
+        line = f"- {grade['subject']}: {grade['percentage']}% ({grade['cambridge_letter_grade']})"
+        if grade['comment']:
+            line = f"{line} | Comment: {grade['comment']}"
+        lines.append(line)
 
     lines.extend([
         '',
@@ -456,10 +541,11 @@ def student_report_download(request, report_id):
         f"Late: {academic['late_count']}",
         '',
         'Teacher Commentary',
-        f"Strengths: {report.content.get('strengths', '')}",
-        f"Areas For Improvement: {report.content.get('areas_for_improvement', '')}",
-        f"Recommendations: {report.content.get('recommendations', '')}",
-        f"General Comments: {report.content.get('general_comments', '')}",
+        f"Strengths: {report_content.get('strengths', '')}",
+        f"Areas For Improvement: {report_content.get('areas_for_improvement', '')}",
+        f"Recommendations: {report_content.get('recommendations', '')}",
+        f"General Comments: {report_content.get('general_comments', '')}",
+        f"Additional Comments: {report_content.get('additional_comments', '')}",
         '',
         'Approval',
         f"Approved By: {report.approved_by}",
@@ -535,7 +621,7 @@ def admin_report_review(request, report_id):
 
 
 @login_required
-def student_reports(request):
+def legacy_student_reports(request):
     if not hasattr(request.user, 'student_profile'):
         raise Http404
 
