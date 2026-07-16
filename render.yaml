@@ -16,8 +16,12 @@ services:
         value: "False"
       - key: DJANGO_SECRET_KEY
         sync: false
-      - key: DJANGO_ALLOWED_HOSTS
-        value: "aspire-portal.onrender.com"
+      - key: ALLOWED_HOSTS
+        value: "aspire-portal.onrender.com,aspireacademy.co.zw,www.aspireacademy.co.zw"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://aspire-portal.onrender.com,https://aspireacademy.co.zw,https://www.aspireacademy.co.zw"
+      - key: DJANGO_SECURE_SSL_REDIRECT
+        value: "True"
       - key: DATABASE_NAME
         value: /data/db.sqlite3
       - key: CELERY_TASK_ALWAYS_EAGER

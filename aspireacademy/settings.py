@@ -15,6 +15,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # DEBUG should be disabled in production. Set DJANGO_DEBUG=True in env to enable.
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
+
+def _split_env_list(value):
+    return [item.strip() for item in value.split(',') if item.strip()]
+
 # Secrets and environment-driven settings
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
@@ -23,14 +27,19 @@ if not SECRET_KEY:
         raise ImproperlyConfigured('The DJANGO_SECRET_KEY environment variable must be set in production.')
 
 # Allow hosts configured via environment (comma-separated), with sensible defaults.
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get(
+ALLOWED_HOSTS = _split_env_list(
+    os.environ.get(
         'ALLOWED_HOSTS',
-        '127.0.0.1,localhost,aspire-portal.onrender.com',
-    ).split(',')
-    if host.strip()
-]
+        '127.0.0.1,localhost,aspire-portal.onrender.com,aspireacademy.co.zw,www.aspireacademy.co.zw',
+    )
+)
+
+CSRF_TRUSTED_ORIGINS = _split_env_list(
+    os.environ.get(
+        'CSRF_TRUSTED_ORIGINS',
+        'https://aspire-portal.onrender.com,https://aspireacademy.co.zw,https://www.aspireacademy.co.zw',
+    )
+)
 
 # Application definition
 INSTALLED_APPS = [
@@ -132,7 +141,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 if not DEBUG:
     SECURE_SSL_REDIRECT = os.environ.get(
         'DJANGO_SECURE_SSL_REDIRECT',
-        os.environ.get('SECURE_SSL_REDIRECT', 'False')
+        os.environ.get('SECURE_SSL_REDIRECT', 'True')
     ) == 'True'
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
