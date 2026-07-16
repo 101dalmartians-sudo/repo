@@ -187,7 +187,7 @@
             </div>
             <div class="mt-8 flex flex-col gap-2 border-t border-slate-200 pt-5 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
                 <p>&copy; 2026 Aspire Academy. All rights reserved.</p>
-                <p>Premium learning, modern care, and a connected school community.</p>
+                <p>{% if homepage_settings and homepage_settings.footer_text %}{{ homepage_settings.footer_text }}{% else %}Premium learning, modern care, and a connected school community.{% endif %}</p>
             </div>
         </div>
     </footer>

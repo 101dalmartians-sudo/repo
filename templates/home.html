@@ -397,11 +397,11 @@
           <div>
             <p class="section-kicker">Welcome to</p>
             <h1 class="mt-3 font-display hero-title font-extrabold">
-              Aspire <span class="accent">Academy</span>
+              {{ hero_heading_primary|default:'Aspire' }}{% if hero_heading_accent %} <span class="accent">{{ hero_heading_accent }}</span>{% endif %}
             </h1>
             <p class="mt-4 hero-tagline">Inspiring Excellence Through Quality Education</p>
             <p class="mt-4 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">
-              We provide a nurturing environment where learners grow academically, socially and personally.
+              {{ homepage_settings.hero_description|default:'We provide a nurturing environment where learners grow academically, socially and personally.' }}
             </p>
 
             <div class="hero-badges mt-6">
@@ -440,7 +440,9 @@
         <div id="gallery" class="section-pad">
           <div class="collage-grid">
             <figure class="collage-card collage-large hover-lift">
-              {% if hero_image %}
+              {% if homepage_settings.hero_image %}
+                <img src="{{ homepage_settings.hero_image.url }}" alt="Aspire Academy campus" class="feature-image" loading="eager" decoding="async">
+              {% elif hero_image %}
                 <img src="{{ hero_image.image.url }}" alt="{{ hero_image.title|default:'Aspire Academy campus highlight' }}" class="feature-image" loading="eager" decoding="async">
               {% else %}
                 <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy campus" class="feature-image" loading="eager" decoding="async">
@@ -543,15 +545,21 @@
     </div>
 
     <div class="feature-grid mt-5">
-      {% for image in gallery_images|slice:":5" %}
+      {% for card in homepage_feature_cards|slice:":5" %}
         <article class="feature-card hover-lift">
           <div class="feature-media">
-            <img src="{{ image.image.url }}" alt="{{ image.title|default:'Aspire Academy gallery image' }}" class="feature-image" loading="lazy" decoding="async">
+            {% if card.image %}
+              <img src="{{ card.image.url }}" alt="{{ card.title|default:'Aspire Academy gallery image' }}" class="feature-image" loading="lazy" decoding="async">
+            {% elif card.fallback_gallery_image %}
+              <img src="{{ card.fallback_gallery_image.image.url }}" alt="{{ card.fallback_gallery_image.title|default:'Aspire Academy gallery image' }}" class="feature-image" loading="lazy" decoding="async">
+            {% else %}
+              <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy campus" class="feature-image" loading="lazy" decoding="async">
+            {% endif %}
           </div>
           <div class="feature-body">
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--academy-red)]">Feature</p>
-            <h3 class="mt-2 text-lg font-semibold text-slate-900">{{ image.title|default:'Campus highlight' }}</h3>
-            <p class="mt-2 text-sm leading-6 text-slate-600">{{ image.caption|default:'Explore Aspire Academy learning, activity, and community spaces.' }}</p>
+            <h3 class="mt-2 text-lg font-semibold text-slate-900">{{ card.title|default:'Campus highlight' }}</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-600">{{ card.description|default:'Explore Aspire Academy learning, activity, and community spaces.' }}</p>
           </div>
         </article>
       {% empty %}
@@ -676,31 +684,32 @@
           <h3 class="text-xl font-semibold text-slate-900">{{ contact_section.form_heading }}</h3>
           <p class="mt-2 text-sm leading-6 text-slate-600">{{ contact_section.form_description }}</p>
 
-          <form id="contact-home-form" class="contact-form mt-5" onsubmit="handleSubmit(event)">
+          <form id="contact-home-form" class="contact-form mt-5" method="post" action="{% url 'accounts:accounts_home' %}#contact">
+            {% csrf_token %}
             <div class="grid gap-3 sm:grid-cols-2">
               <div>
                 <label for="fullName" class="mb-1.5 block text-sm font-medium text-slate-700">Full Name</label>
-                <input id="fullName" name="fullName" type="text" required class="input-field" placeholder="Your full name" />
+                <input id="fullName" name="full_name" type="text" required class="input-field" placeholder="Your full name" value="{{ inquiry_form.full_name.value|default:'' }}" />
               </div>
               <div>
                 <label for="email" class="mb-1.5 block text-sm font-medium text-slate-700">Email Address</label>
-                <input id="email" name="email" type="email" required class="input-field" placeholder="you@example.com" />
+                <input id="email" name="email" type="email" required class="input-field" placeholder="you@example.com" value="{{ inquiry_form.email.value|default:'' }}" />
               </div>
             </div>
 
             <div>
               <label for="subject" class="mb-1.5 block text-sm font-medium text-slate-700">Subject / Reason</label>
               <select id="subject" name="subject" required class="input-field">
-                <option value="General Inquiry">General Inquiry</option>
-                <option value="Support">Support</option>
-                <option value="Partnerships">Partnerships</option>
-                <option value="Admissions">Admissions</option>
+                <option value="General Inquiry" {% if inquiry_form.subject.value == 'General Inquiry' or not inquiry_form.subject.value %}selected{% endif %}>General Inquiry</option>
+                <option value="Support" {% if inquiry_form.subject.value == 'Support' %}selected{% endif %}>Support</option>
+                <option value="Partnerships" {% if inquiry_form.subject.value == 'Partnerships' %}selected{% endif %}>Partnerships</option>
+                <option value="Admissions" {% if inquiry_form.subject.value == 'Admissions' %}selected{% endif %}>Admissions</option>
               </select>
             </div>
 
             <div>
               <label for="message" class="mb-1.5 block text-sm font-medium text-slate-700">Message</label>
-              <textarea id="message" name="message" rows="5" required class="input-field resize-none" placeholder="Tell us how we can help..."></textarea>
+              <textarea id="message" name="message" rows="5" required class="input-field resize-none" placeholder="Tell us how we can help...">{{ inquiry_form.message.value|default:'' }}</textarea>
             </div>
 
             <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--academy-red)] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[color:var(--academy-red)]/25 focus:ring-offset-2">
@@ -712,21 +721,6 @@
         </div>
       </div>
     </div>
-
-    <script>
-      function handleSubmit(e) {
-        e.preventDefault();
-        const form = document.getElementById('contact-home-form');
-        const data = {
-          fullName: form.fullName.value,
-          email: form.email.value,
-          subject: form.subject.value,
-          message: form.message.value,
-        };
-        console.log('Contact form submitted:', data);
-        form.reset();
-      }
-    </script>
   </section>
 </div>
 {% endblock %}

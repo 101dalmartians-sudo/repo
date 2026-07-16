@@ -2,6 +2,8 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
 
 
@@ -11,10 +13,17 @@ from django.db.models import F, Q, Sum
 from django.utils import timezone
 
 from apps.finance.models import Budget, Expense, Income
+from apps.news.forms import HomepageInquiryForm
 from apps.students.models import StudentProfile, FinancialRecord, Payment, AttendanceRecord
 from apps.teachers.models import TeacherProfile
 from apps.notifications.models import Notification
-from apps.news.models import News, GalleryImage, HomePageContactSection
+from apps.news.models import (
+    GalleryImage,
+    HomePageContactSection,
+    HomepageInquiry,
+    HomepageSettings,
+    News,
+)
 from apps.grades.models import Grade
 from apps.reports.services import BiWeeklyReportService
 
@@ -43,13 +52,34 @@ def logout_view(request):
 def home(request):
     # Public landing page for unauthenticated users
     if not request.user.is_authenticated:
+        inquiry_form = HomepageInquiryForm(request.POST or None)
+        if request.method == 'POST':
+            if inquiry_form.is_valid():
+                inquiry_form.save()
+                return HttpResponseRedirect(f"{reverse('accounts:accounts_home')}#contact")
+
+        homepage_settings = HomepageSettings.get_solo()
         news = News.objects.all().order_by('-created_at')[:5]
-        gallery_images = GalleryImage.objects.filter(active=True).order_by('order', '-created_at')[:8]
-        contact_section = HomePageContactSection.objects.first() or HomePageContactSection()
+        gallery_images = list(GalleryImage.objects.filter(active=True).order_by('order', '-created_at')[:8])
+        contact_section = homepage_settings.contact_section or HomePageContactSection.objects.first() or HomePageContactSection()
+        homepage_feature_cards = list(homepage_settings.feature_cards.filter(is_active=True).order_by('order', 'id'))
+        for index, card in enumerate(homepage_feature_cards):
+            card.fallback_gallery_image = gallery_images[index] if index < len(gallery_images) else None
+
+        hero_heading = (homepage_settings.hero_heading or 'Aspire Academy').strip() or 'Aspire Academy'
+        heading_parts = hero_heading.split(maxsplit=1)
+        hero_heading_primary = heading_parts[0]
+        hero_heading_accent = heading_parts[1] if len(heading_parts) > 1 else ''
+
         return render(request, 'home.html', {
             'news': news,
             'gallery_images': gallery_images,
             'contact_section': contact_section,
+            'homepage_settings': homepage_settings,
+            'homepage_feature_cards': homepage_feature_cards,
+            'hero_heading_primary': hero_heading_primary,
+            'hero_heading_accent': hero_heading_accent,
+            'inquiry_form': inquiry_form,
             'notifications_count': 0,
         })
 

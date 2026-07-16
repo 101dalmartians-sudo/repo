@@ -80,3 +80,101 @@ class HomePageContactSection(models.Model):
 
     def __str__(self):
         return self.section_title
+
+
+class HomepageSettings(models.Model):
+    singleton_key = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    hero_heading = models.CharField(max_length=200, default='Aspire Academy')
+    hero_description = models.TextField(
+        default='We provide a nurturing environment where learners grow academically, socially and personally.'
+    )
+    hero_image = models.ImageField(upload_to='homepage/settings/', blank=True, null=True)
+    footer_text = models.TextField(
+        default='Premium learning, modern care, and a connected school community.'
+    )
+    contact_section = models.OneToOneField(
+        HomePageContactSection,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='homepage_settings',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Homepage Settings'
+        verbose_name_plural = 'Homepage Settings'
+
+    def __str__(self):
+        return 'Homepage Settings'
+
+    def clean(self):
+        super().clean()
+        self.singleton_key = 1
+        queryset = type(self).objects.exclude(pk=self.pk)
+        if queryset.exists():
+            raise ValidationError('Only one Homepage Settings record can exist.')
+
+    def save(self, *args, **kwargs):
+        self.singleton_key = 1
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        settings = cls.objects.first()
+        if settings:
+            return settings
+        contact = HomePageContactSection.objects.first()
+        return cls.objects.create(singleton_key=1, contact_section=contact)
+
+
+class HomepageFeatureCard(models.Model):
+    settings = models.ForeignKey(
+        HomepageSettings,
+        on_delete=models.CASCADE,
+        related_name='feature_cards',
+    )
+    slug = models.SlugField(max_length=100)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    image = models.ImageField(upload_to='homepage/features/', blank=True, null=True)
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+        unique_together = ('settings', 'slug')
+        verbose_name = 'Homepage Feature Card'
+        verbose_name_plural = 'Homepage Feature Cards'
+
+    def __str__(self):
+        return self.title
+
+
+class HomepageInquiry(models.Model):
+    STATUS_UNREAD = 'unread'
+    STATUS_READ = 'read'
+    STATUS_ARCHIVED = 'archived'
+
+    STATUS_CHOICES = [
+        (STATUS_UNREAD, 'Unread'),
+        (STATUS_READ, 'Read'),
+        (STATUS_ARCHIVED, 'Archived'),
+    ]
+
+    full_name = models.CharField(max_length=120)
+    email = models.EmailField()
+    subject = models.CharField(max_length=120)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_UNREAD)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Homepage Inquiry'
+        verbose_name_plural = 'Homepage Inquiries'
+
+    def __str__(self):
+        return f'{self.full_name} - {self.subject}'
