@@ -6,7 +6,7 @@ Teachers can create and submit reports.
 """
 
 from django.contrib import admin, messages
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from .models import ReportingPeriod, ReportField, BiWeeklyReport, ReportingAnalytics
@@ -277,12 +277,19 @@ class BiWeeklyReportAdmin(admin.ModelAdmin):
     
     def content_display(self, obj):
         """Display report content in readable format"""
-        html = '<table style="width: 100%; border-collapse: collapse;">'
-        for key, value in obj.content.items():
-            html += f'<tr><td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">{key}</td>'
-            html += f'<td style="border: 1px solid #ddd; padding: 8px;">{value}</td></tr>'
-        html += '</table>'
-        return format_html(html) if obj.content else '—'
+        if not obj.content:
+            return '—'
+
+        rows = format_html_join(
+            '',
+            '<tr><td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">{}</td>'
+            '<td style="border: 1px solid #ddd; padding: 8px;">{}</td></tr>',
+            ((key, value) for key, value in obj.content.items()),
+        )
+        return format_html(
+            '<table style="width: 100%; border-collapse: collapse;">{}</table>',
+            rows,
+        )
     content_display.short_description = 'Content'
     
     def actions_display(self, obj):
