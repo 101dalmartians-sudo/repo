@@ -560,6 +560,58 @@ class ReportingViewsIntegrationTests(TestCase):
         report.refresh_from_db()
         self.assertEqual(report.status, 'published')
 
+    def test_admin_can_delete_unused_reporting_period(self):
+        unused_period = ReportingPeriod.objects.create(
+            name='Unused Cycle',
+            start_date=self.period.start_date,
+            end_date=self.period.end_date,
+            reporting_type='bi_weekly',
+            term='term1',
+            year=2026,
+            submission_opens=timezone.now() - timedelta(days=2),
+            submission_deadline=timezone.now() + timedelta(days=2),
+            approval_deadline=timezone.now() + timedelta(days=5),
+            status='closed',
+            created_by=self.admin_user,
+            is_published=False,
+        )
+
+        self.client.login(username='aview', password='password')
+        response = self.client.post(reverse('reports:admin_reports_dashboard'), {
+            'scope': 'period',
+            'period_id': unused_period.id,
+            'period_action': 'delete',
+        }, secure=True)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ReportingPeriod.objects.filter(pk=unused_period.pk).exists())
+
+    def test_admin_cannot_delete_reporting_period_with_reports(self):
+        report = BiWeeklyReport.objects.create(
+            period=self.period,
+            student=self.student,
+            teacher=self.teacher_user,
+            content={'strengths': 'Strong progress'},
+            status='submitted',
+            submitted_by=self.teacher_user,
+            submitted_at=timezone.now(),
+        )
+
+        self.client.login(username='aview', password='password')
+        response = self.client.post(reverse('reports:admin_reports_dashboard'), {
+            'scope': 'period',
+            'period_id': self.period.id,
+            'period_action': 'delete',
+        }, follow=True, secure=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'This reporting period cannot be deleted because it is associated with existing reports. Please archive the reporting period instead.'
+        )
+        self.assertTrue(ReportingPeriod.objects.filter(pk=self.period.pk).exists())
+        self.assertTrue(BiWeeklyReport.objects.filter(pk=report.pk).exists())
+
     def test_student_can_view_published_reports(self):
         Grade.objects.create(
             student=self.student,

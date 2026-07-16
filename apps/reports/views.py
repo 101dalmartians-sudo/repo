@@ -2,10 +2,12 @@ from collections import defaultdict
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
 from django.db.models import Avg
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.db.models.deletion import ProtectedError
 
 from apps.grades.models import Grade
 from apps.grades.services import AcademicService
@@ -541,8 +543,21 @@ def admin_reports_dashboard(request):
                 period.save(update_fields=['status', 'last_edited_by', 'updated_at'])
                 messages.success(request, 'Reporting period archived.')
             elif period_action == 'delete':
-                period.delete()
-                messages.success(request, 'Reporting period deleted.')
+                if period.reports.exists():
+                    messages.error(
+                        request,
+                        'This reporting period cannot be deleted because it is associated with existing reports. Please archive the reporting period instead.'
+                    )
+                else:
+                    try:
+                        with transaction.atomic():
+                            period.delete()
+                        messages.success(request, 'Reporting period deleted.')
+                    except (ProtectedError, IntegrityError):
+                        messages.error(
+                            request,
+                            'This reporting period cannot be deleted because it is associated with existing reports. Please archive the reporting period instead.'
+                        )
 
             return redirect('reports:admin_reports_dashboard')
 
