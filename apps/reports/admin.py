@@ -82,13 +82,9 @@ class ReportingPeriodAdmin(admin.ModelAdmin):
     
     def submission_status(self, obj):
         if obj.is_open_for_submission():
-            return format_html(
-                '<span style="color: #28a745; font-weight: bold;">✓ Open</span>'
-            )
+            return mark_safe('<span style="color: #28a745; font-weight: bold;">✓ Open</span>')
         else:
-            return format_html(
-                '<span style="color: #dc3545;">✗ Closed</span>'
-            )
+            return mark_safe('<span style="color: #dc3545;">✗ Closed</span>')
     submission_status.short_description = 'Submission Open?'
     
     def reports_count(self, obj):
