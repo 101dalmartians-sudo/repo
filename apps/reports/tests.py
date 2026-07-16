@@ -468,26 +468,18 @@ class ReportingViewsIntegrationTests(TestCase):
         self.assertContains(response, 'Reports Workspace')
 
     def test_teacher_can_save_subject_comments_in_report_builder(self):
-        Grade.objects.create(
-            student=self.student,
-            subject='Mathematics',
-            percentage=Decimal('88.0'),
-            cambridge_letter_grade='A*',
-            term='term1',
-        )
-        Grade.objects.create(
-            student=self.student,
-            subject='English',
-            percentage=Decimal('72.0'),
-            cambridge_letter_grade='A',
-            term='term1',
-        )
-
         self.client.login(username='tview', password='password')
         response = self.client.post(reverse('reports:teacher_report_editor', args=[self.period.id, self.student.id]), {
-            'selected_subjects': ['Mathematics'],
-            'subject_comment_Mathematics': 'Strong problem solving.',
-            'subject_comment_English': 'Keep reading daily.',
+            'academic_row_count': '2',
+            'academic_subject_0': 'Mathematics',
+            'academic_percentage_0': '88.0',
+            'academic_term_0': 'term1',
+            'academic_comment_0': 'Strong problem solving.',
+            'academic_include_0': 'on',
+            'academic_subject_1': 'English',
+            'academic_percentage_1': '72.0',
+            'academic_term_1': 'term1',
+            'academic_comment_1': 'Keep reading daily.',
             'strengths': 'Consistent effort',
             'areas_for_improvement': 'Written expression',
             'recommendations': 'More revision',
@@ -502,7 +494,42 @@ class ReportingViewsIntegrationTests(TestCase):
         report = BiWeeklyReport.objects.get(period=self.period, student=self.student)
         self.assertEqual(report.content['selected_subjects'], ['Mathematics'])
         self.assertEqual(report.content['subject_comments']['Mathematics'], 'Strong problem solving.')
+        self.assertEqual(report.content['draft_academic_entries']['Mathematics']['percentage'], 88.0)
         self.assertEqual(report.content['additional_comments'], 'Ready for the next reporting cycle')
+        self.assertFalse(Grade.objects.filter(student=self.student, subject='Mathematics', term='term1').exists())
+
+    def test_submit_promotes_draft_marks_to_grade_records(self):
+        self.client.login(username='tview', password='password')
+        response = self.client.post(reverse('reports:teacher_report_editor', args=[self.period.id, self.student.id]), {
+            'academic_row_count': '2',
+            'academic_subject_0': 'Mathematics',
+            'academic_percentage_0': '91',
+            'academic_term_0': 'term1',
+            'academic_comment_0': 'Excellent consistency.',
+            'academic_include_0': 'on',
+            'academic_subject_1': 'English',
+            'academic_percentage_1': '76',
+            'academic_term_1': 'term1',
+            'academic_comment_1': 'Good reading skills.',
+            'academic_include_1': 'on',
+            'strengths': 'Strong academics',
+            'areas_for_improvement': 'Homework timing',
+            'recommendations': 'Daily revision',
+            'general_comments': 'Positive progress',
+            'additional_comments': 'Keep momentum',
+            'grading_format': 'percentage',
+            'custom_grading_scale': '',
+            'action': 'submit',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        report = BiWeeklyReport.objects.get(period=self.period, student=self.student)
+        self.assertEqual(report.status, 'submitted')
+
+        math_grade = Grade.objects.get(student=self.student, subject='Mathematics', term='term1')
+        english_grade = Grade.objects.get(student=self.student, subject='English', term='term1')
+        self.assertEqual(float(math_grade.percentage), 91.0)
+        self.assertEqual(float(english_grade.percentage), 76.0)
 
     def test_admin_can_approve_and_publish_report(self):
         report = BiWeeklyReport.objects.create(

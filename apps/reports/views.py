@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.grades.models import Grade
+from apps.grades.services import AcademicService
 from apps.students.models import AttendanceRecord, AuditLog, ExamResult, StudentProfile
 from apps.teachers.selectors import get_filtered_students
 
@@ -98,9 +99,31 @@ def _report_content_defaults():
         'additional_comments': '',
         'selected_subjects': [],
         'subject_comments': {},
+        'draft_academic_entries': {},
         'grading_format': 'percentage',
         'custom_grading_scale': '',
     }
+
+
+def _safe_float(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _resolve_grade_term(student, subject, period, draft_entry):
+    if period.term:
+        return period.term
+
+    draft_term = (draft_entry or {}).get('term')
+    if draft_term:
+        return str(draft_term).strip()
+
+    existing = Grade.objects.filter(student=student, subject=subject).order_by('-id').first()
+    if existing and existing.term:
+        return existing.term
+    return ''
 
 
 def _get_subject_rows(report, academic):
@@ -131,6 +154,141 @@ def _get_subject_rows(report, academic):
                 ordered_rows.append(row)
                 break
     return ordered_rows, content
+
+
+def _get_academic_editor_rows(report, academic):
+    content = _report_content_defaults()
+    content.update(report.content or {})
+
+    official_rows = {row['subject']: dict(row) for row in academic['grades']}
+    subject_comments = content.get('subject_comments') or {}
+    selected_subjects = set(content.get('selected_subjects') or [])
+    draft_entries = content.get('draft_academic_entries') or {}
+
+    rows = []
+    all_subjects = set(official_rows.keys()) | set(draft_entries.keys())
+    for subject_name in sorted(all_subjects):
+        official = official_rows.get(subject_name, {})
+        draft = draft_entries.get(subject_name, {})
+
+        percentage = draft.get('percentage', official.get('percentage'))
+        percentage_float = _safe_float(percentage)
+
+        if report.status == 'draft':
+            display_grade = Grade.calculate_cambridge_grade(percentage_float) if percentage_float is not None else ''
+        else:
+            display_grade = official.get('cambridge_letter_grade', '')
+
+        row = {
+            'subject': subject_name,
+            'percentage': '' if percentage is None else str(percentage),
+            'term': draft.get('term', official.get('term', '')),
+            'cambridge_letter_grade': display_grade,
+            'comment': subject_comments.get(subject_name, ''),
+            'selected': subject_name in selected_subjects if selected_subjects else True,
+            'is_official': subject_name in official_rows,
+        }
+        rows.append(row)
+
+    if not rows and report.status == 'draft':
+        rows.append({
+            'subject': '',
+            'percentage': '',
+            'term': '',
+            'cambridge_letter_grade': '',
+            'comment': '',
+            'selected': True,
+            'is_official': False,
+        })
+
+    return rows, content
+
+
+def _collect_draft_academic_from_request(request, report):
+    rows = []
+    selected_subjects = []
+    subject_comments = {}
+    draft_entries = {}
+
+    row_count = int(request.POST.get('academic_row_count', '0') or 0)
+    for idx in range(row_count):
+        subject = (request.POST.get(f'academic_subject_{idx}') or '').strip()
+        percentage_raw = (request.POST.get(f'academic_percentage_{idx}') or '').strip()
+        term = (request.POST.get(f'academic_term_{idx}') or '').strip()
+        comment = request.POST.get(f'academic_comment_{idx}', '').strip()
+        included = request.POST.get(f'academic_include_{idx}') == 'on'
+
+        if not subject:
+            continue
+
+        subject_comments[subject] = comment
+        if included:
+            selected_subjects.append(subject)
+
+        percentage = _safe_float(percentage_raw) if percentage_raw else None
+        if percentage is not None:
+            draft_entries[subject] = {
+                'percentage': percentage,
+                'term': term,
+            }
+
+        row = {
+            'subject': subject,
+            'percentage': percentage_raw,
+            'term': term,
+            'comment': comment,
+            'selected': included,
+            'cambridge_letter_grade': Grade.calculate_cambridge_grade(percentage) if percentage is not None else '',
+            'is_official': False,
+        }
+        rows.append(row)
+
+    content = {
+        'selected_subjects': selected_subjects,
+        'subject_comments': subject_comments,
+        'draft_academic_entries': draft_entries,
+    }
+    return rows, content
+
+
+def _promote_draft_grades(report, student, period, actor):
+    content = _report_content_defaults()
+    content.update(report.content or {})
+    draft_entries = content.get('draft_academic_entries') or {}
+
+    for subject, entry in draft_entries.items():
+        percentage = _safe_float(entry.get('percentage'))
+        if percentage is None:
+            continue
+
+        term = _resolve_grade_term(student, subject, period, entry)
+        if not term:
+            return {
+                'success': False,
+                'message': (
+                    f'Cannot submit report. No term is available for subject "{subject}". '
+                    'Set a reporting period term or enter/update this subject in an existing term first.'
+                ),
+            }
+
+        result = AcademicService.create_or_update_grade(
+            student,
+            subject,
+            percentage,
+            term,
+            user=actor,
+        )
+        if not result['success']:
+            return {
+                'success': False,
+                'message': result['message'],
+            }
+
+        draft_entries[subject]['term'] = term
+
+    report.content = content
+    report.save(update_fields=['content', 'updated_at'])
+    return {'success': True}
 
 
 def _get_editor_subject_rows(report, academic):
@@ -270,14 +428,20 @@ def teacher_report_editor(request, period_id, student_id):
 
     academic = _compile_academic_snapshot(student, period)
     subject_rows, content = _get_subject_rows(report, academic)
-    editor_subject_rows = _get_editor_subject_rows(report, academic)
+    editor_subject_rows, editor_content = _get_academic_editor_rows(report, academic)
     available_subjects = [grade['subject'] for grade in academic['grades']]
 
     if request.method == 'POST':
-        selected_subjects = request.POST.getlist('selected_subjects')
-        subject_comments = {}
-        for subject_name in available_subjects:
-            subject_comments[subject_name] = request.POST.get(f'subject_comment_{subject_name}', '').strip()
+        if report.status == 'draft':
+            editor_subject_rows, academic_content = _collect_draft_academic_from_request(request, report)
+        else:
+            existing_content = _report_content_defaults()
+            existing_content.update(report.content or {})
+            academic_content = {
+                'selected_subjects': existing_content.get('selected_subjects', []),
+                'subject_comments': existing_content.get('subject_comments', {}),
+                'draft_academic_entries': existing_content.get('draft_academic_entries', {}),
+            }
 
         content = {
             'strengths': request.POST.get('strengths', '').strip(),
@@ -285,8 +449,9 @@ def teacher_report_editor(request, period_id, student_id):
             'recommendations': request.POST.get('recommendations', '').strip(),
             'general_comments': request.POST.get('general_comments', '').strip(),
             'additional_comments': request.POST.get('additional_comments', '').strip(),
-            'selected_subjects': selected_subjects,
-            'subject_comments': subject_comments,
+            'selected_subjects': academic_content['selected_subjects'],
+            'subject_comments': academic_content['subject_comments'],
+            'draft_academic_entries': academic_content['draft_academic_entries'],
             'grading_format': request.POST.get('grading_format', 'percentage').strip() or 'percentage',
             'custom_grading_scale': request.POST.get('custom_grading_scale', '').strip(),
         }
@@ -302,6 +467,11 @@ def teacher_report_editor(request, period_id, student_id):
         _log_report_action(request.user, 'Bi-weekly report updated', report)
 
         if action == 'submit':
+            promote_result = _promote_draft_grades(report, student, period, request.user)
+            if not promote_result['success']:
+                messages.error(request, promote_result['message'])
+                return redirect('reports:teacher_report_editor', period_id=period.id, student_id=student.id)
+
             submit_result = BiWeeklyReportService.submit_report(report, request.user)
             if submit_result['success']:
                 _log_report_action(request.user, 'Bi-weekly report submitted', report)
@@ -311,8 +481,9 @@ def teacher_report_editor(request, period_id, student_id):
         else:
             messages.success(request, 'Draft saved successfully.')
 
+        academic = _compile_academic_snapshot(student, period)
         subject_rows, content = _get_subject_rows(report, academic)
-        editor_subject_rows = _get_editor_subject_rows(report, academic)
+        editor_subject_rows, editor_content = _get_academic_editor_rows(report, academic)
 
     return render(
         request,
@@ -325,6 +496,7 @@ def teacher_report_editor(request, period_id, student_id):
             'subject_rows': subject_rows,
             'editor_subject_rows': editor_subject_rows,
             'report_content': content,
+            'editor_content': editor_content,
             'available_subjects': available_subjects,
         },
     )

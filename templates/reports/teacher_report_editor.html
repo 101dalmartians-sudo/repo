@@ -67,6 +67,62 @@
         <h2 class="text-xl font-semibold">Teacher Commentary</h2>
         <form method="post" class="mt-4 space-y-4">
             {% csrf_token %}
+            <input type="hidden" name="academic_row_count" id="academic-row-count" value="{{ editor_subject_rows|length }}">
+
+            <div class="rounded-2xl border border-slate-200 p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h3 class="text-lg font-semibold text-slate-900">Academic Performance (Draft Workspace)</h3>
+                    {% if report.status == 'draft' %}
+                    <button type="button" id="add-academic-row" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:border-academy">Add Subject</button>
+                    {% endif %}
+                </div>
+                <p class="mt-2 text-sm text-slate-600">
+                    {% if report.status == 'draft' %}
+                    Enter draft marks here. Official Grade records are updated when you submit this report.
+                    {% else %}
+                    This report now uses official Grade records as the academic source of truth.
+                    {% endif %}
+                </p>
+
+                <div class="mt-4 space-y-3" id="academic-rows">
+                    {% for row in editor_subject_rows %}
+                    <div class="rounded-2xl border border-slate-200 p-4 academic-row" data-index="{{ forloop.counter0 }}">
+                        <div class="grid gap-3 lg:grid-cols-5">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600">Subject</label>
+                                <input name="academic_subject_{{ forloop.counter0 }}" value="{{ row.subject }}" {% if report.status != 'draft' %}readonly{% endif %} class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm {% if report.status != 'draft' %}bg-slate-100{% endif %}">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600">Mark (%)</label>
+                                <input name="academic_percentage_{{ forloop.counter0 }}" value="{{ row.percentage }}" {% if report.status != 'draft' %}readonly{% endif %} type="number" min="0" max="100" step="0.01" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm {% if report.status != 'draft' %}bg-slate-100{% endif %}">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600">Grade</label>
+                                <input value="{{ row.cambridge_letter_grade }}" readonly class="mt-1 w-full rounded-xl border border-slate-300 bg-slate-100 px-3 py-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600">Term</label>
+                                <input name="academic_term_{{ forloop.counter0 }}" value="{{ row.term }}" {% if report.status != 'draft' %}readonly{% endif %} class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm {% if report.status != 'draft' %}bg-slate-100{% endif %}">
+                            </div>
+                            <div class="flex items-end gap-2">
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" name="academic_include_{{ forloop.counter0 }}" {% if row.selected %}checked{% endif %} {% if report.status != 'draft' %}disabled{% endif %}>
+                                    Include
+                                </label>
+                                {% if report.status == 'draft' %}
+                                <button type="button" class="remove-academic-row rounded-xl border border-slate-300 px-2 py-1 text-xs hover:border-red-600">Remove</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="block text-xs font-medium text-slate-600">Subject-specific comment</label>
+                            <textarea name="academic_comment_{{ forloop.counter0 }}" rows="2" {% if report.status != 'draft' %}readonly{% endif %} class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm {% if report.status != 'draft' %}bg-slate-100{% endif %}">{{ row.comment }}</textarea>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
             <div class="grid gap-4 lg:grid-cols-2">
                 <div>
                     <label class="block text-sm font-medium">Grading format</label>
@@ -80,33 +136,6 @@
                 <div>
                     <label class="block text-sm font-medium">Custom grading scale</label>
                     <input name="custom_grading_scale" value="{{ report_content.custom_grading_scale }}" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Example: Excellent/Good/Fair/Needs Support">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium">Subjects in this report</label>
-                <div class="mt-3 space-y-3">
-                    {% for row in editor_subject_rows %}
-                    <div class="rounded-2xl border border-slate-200 p-4">
-                        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                            <label class="flex items-center gap-2 text-sm font-medium text-slate-900">
-                                <input type="checkbox" name="selected_subjects" value="{{ row.subject }}" {% if row.selected %}checked{% endif %}>
-                                <span>{{ row.subject }}</span>
-                            </label>
-                            <div class="text-sm text-slate-600">
-                                <span>{{ row.percentage }}%</span>
-                                <span class="ml-2">{{ row.cambridge_letter_grade }}</span>
-                                <span class="ml-2">{{ row.term }}</span>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <label class="block text-sm font-medium">Subject-specific comment</label>
-                            <textarea name="subject_comment_{{ row.subject }}" rows="2" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3">{{ row.comment }}</textarea>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p class="text-sm text-slate-600">No subject history found yet for this student.</p>
-                    {% endfor %}
                 </div>
             </div>
 
@@ -137,4 +166,95 @@
         </form>
     </div>
 </div>
+
+{% if report.status == 'draft' %}
+<script>
+    (function () {
+        const rowsContainer = document.getElementById('academic-rows');
+        const rowCountInput = document.getElementById('academic-row-count');
+        const addRowButton = document.getElementById('add-academic-row');
+
+        if (!rowsContainer || !rowCountInput || !addRowButton) {
+            return;
+        }
+
+        const reindexRows = function () {
+            const rows = rowsContainer.querySelectorAll('.academic-row');
+            rows.forEach(function (row, index) {
+                row.setAttribute('data-index', String(index));
+
+                const subjectInput = row.querySelector('input[name^="academic_subject_"]');
+                const percentageInput = row.querySelector('input[name^="academic_percentage_"]');
+                const termInput = row.querySelector('input[name^="academic_term_"]');
+                const includeInput = row.querySelector('input[name^="academic_include_"]');
+                const commentInput = row.querySelector('textarea[name^="academic_comment_"]');
+
+                if (subjectInput) subjectInput.name = `academic_subject_${index}`;
+                if (percentageInput) percentageInput.name = `academic_percentage_${index}`;
+                if (termInput) termInput.name = `academic_term_${index}`;
+                if (includeInput) includeInput.name = `academic_include_${index}`;
+                if (commentInput) commentInput.name = `academic_comment_${index}`;
+            });
+
+            rowCountInput.value = rows.length;
+        };
+
+        const bindRemoveButtons = function () {
+            rowsContainer.querySelectorAll('.remove-academic-row').forEach(function (button) {
+                button.onclick = function () {
+                    const row = button.closest('.academic-row');
+                    if (row) {
+                        row.remove();
+                        reindexRows();
+                    }
+                };
+            });
+        };
+
+        addRowButton.addEventListener('click', function () {
+            const nextIndex = rowsContainer.querySelectorAll('.academic-row').length;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'rounded-2xl border border-slate-200 p-4 academic-row';
+            wrapper.setAttribute('data-index', String(nextIndex));
+            wrapper.innerHTML = `
+                <div class="grid gap-3 lg:grid-cols-5">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600">Subject</label>
+                        <input name="academic_subject_${nextIndex}" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600">Mark (%)</label>
+                        <input name="academic_percentage_${nextIndex}" type="number" min="0" max="100" step="0.01" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600">Grade</label>
+                        <input readonly class="mt-1 w-full rounded-xl border border-slate-300 bg-slate-100 px-3 py-2 text-sm" placeholder="Auto">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600">Term</label>
+                        <input name="academic_term_${nextIndex}" value="{{ period.term|default:'' }}" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" name="academic_include_${nextIndex}" checked>
+                            Include
+                        </label>
+                        <button type="button" class="remove-academic-row rounded-xl border border-slate-300 px-2 py-1 text-xs hover:border-red-600">Remove</button>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="block text-xs font-medium text-slate-600">Subject-specific comment</label>
+                    <textarea name="academic_comment_${nextIndex}" rows="2" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"></textarea>
+                </div>
+            `;
+            rowsContainer.appendChild(wrapper);
+            reindexRows();
+            bindRemoveButtons();
+        });
+
+        reindexRows();
+        bindRemoveButtons();
+    })();
+</script>
+{% endif %}
 {% endblock %}
