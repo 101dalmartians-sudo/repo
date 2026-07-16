@@ -3,6 +3,8 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from .media_views import serve_media
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include(('apps.accounts.urls', 'accounts'), namespace='accounts')),
@@ -15,6 +17,7 @@ urlpatterns = [
     path('news/', include('apps.news.urls')),
     path('finance/', include(('apps.finance.urls', 'finance'), namespace='finance')),
     path('reports/', include(('apps.reports.urls', 'reports'), namespace='reports')),
+    path('media/<path:path>', serve_media, name='serve_media'),
 ]
 
 # Serve media files in development
