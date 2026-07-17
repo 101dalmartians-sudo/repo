@@ -392,7 +392,7 @@ def teacher_periods(request):
 
     context = {
         'periods': periods,
-        'students': students[:200],
+        'students': students,
         'my_reports': my_reports[:30],
         'report_status_groups': report_status_groups,
         'period_form': period_form,

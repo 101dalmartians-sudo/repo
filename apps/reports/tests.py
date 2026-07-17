@@ -467,6 +467,14 @@ class ReportingViewsIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Reports Workspace')
 
+    def test_teacher_periods_page_uses_searchable_student_picker(self):
+        self.client.login(username='tview', password='password')
+        response = self.client.get(reverse('reports:teacher_periods'))
+        self.assertContains(response, 'Search Student')
+        self.assertContains(response, 'Approved students')
+        self.assertNotContains(response, 'report-student-checkbox')
+        self.assertNotContains(response, 'select-all-report-students')
+
     def test_teacher_can_save_subject_comments_in_report_builder(self):
         self.client.login(username='tview', password='password')
         response = self.client.post(reverse('reports:teacher_report_editor', args=[self.period.id, self.student.id]), {

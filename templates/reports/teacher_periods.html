@@ -12,70 +12,6 @@
             <a href="#report-history" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-slate-700 hover:border-academy hover:text-academy">Report history</a>
         </div>
     </div>
-
-    {% if messages %}
-    <div class="space-y-4">
-        {% for message in messages %}
-        <div class="rounded-2xl border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-800">{{ message }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
-        <div class="flex items-start justify-between gap-4">
-            <div>
-                <h2 class="text-2xl font-semibold text-slate-900">Most used tasks</h2>
-                <p class="mt-2 text-slate-600">Start with the actions teachers use most often during a reporting cycle.</p>
-            </div>
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                <p>Drafts ready: <strong>{{ report_status_groups.drafts|length }}</strong></p>
-                <p>Published reports: <strong>{{ report_status_groups.published|length }}</strong></p>
-            </div>
-        </div>
-
-        <div class="mt-6 grid gap-4 lg:grid-cols-3">
-            <a href="{% url 'grades_entry' %}" class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm hover:border-academy hover:bg-white">
-                <h3 class="text-lg font-semibold text-slate-900">Enter Grades</h3>
-                <p class="mt-2 text-sm text-slate-600">Update grade records first so report marks and grades stay current everywhere.</p>
-            </a>
-            <a href="#report-builder" class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm hover:border-academy hover:bg-white">
-                <h3 class="text-lg font-semibold text-slate-900">Create Report</h3>
-                <p class="mt-2 text-sm text-slate-600">Choose a reporting period, select students, and open the official report builder.</p>
-            </a>
-            <a href="#draft-reports" class="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm hover:border-academy hover:bg-white">
-                <h3 class="text-lg font-semibold text-slate-900">Draft Reports</h3>
-                <p class="mt-2 text-sm text-slate-600">Return to unfinished reports that are ready for editing or submission.</p>
-            </a>
-        </div>
-    </div>
-
-    <div class="grid gap-4 lg:grid-cols-3">
-        <a href="{% url 'grades_entry' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200 hover:border-academy">
-            <h2 class="text-lg font-semibold text-slate-900">Enter Grades</h2>
-            <p class="mt-2 text-sm text-slate-600">Open the student-first grade entry screen and update grade records.</p>
-        </a>
-        <a href="{% url 'teachers_attendance_workspace' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200 hover:border-academy">
-            <h2 class="text-lg font-semibold text-slate-900">Attendance</h2>
-            <p class="mt-2 text-sm text-slate-600">Record attendance sessions that continue feeding report and student views.</p>
-        </a>
-        <a href="{% url 'teachers_exams_workspace' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200 hover:border-academy">
-            <h2 class="text-lg font-semibold text-slate-900">Exam Schedule</h2>
-            <p class="mt-2 text-sm text-slate-600">Manage exams and publish schedules using the existing teacher exam tools.</p>
-        </a>
-        <a href="{% url 'teachers_exams_workspace' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200 hover:border-academy">
-            <h2 class="text-lg font-semibold text-slate-900">Exam Results</h2>
-            <p class="mt-2 text-sm text-slate-600">Continue recording exam results that synchronize with student records and reports.</p>
-        </a>
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200">
-            <h2 class="text-lg font-semibold text-slate-900">Draft Reports</h2>
-            <p class="mt-2 text-sm text-slate-600">{{ report_status_groups.drafts|length }} recent draft reports are ready for editing or submission.</p>
-        </div>
-        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200">
-            <h2 class="text-lg font-semibold text-slate-900">Published Reports</h2>
-            <p class="mt-2 text-sm text-slate-600">{{ report_status_groups.published|length }} recent published reports are visible from this teacher account.</p>
-        </div>
-    </div>
-
     <div id="report-builder" class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200 scroll-mt-24">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -84,17 +20,6 @@
             </div>
             <a href="#reporting-periods" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 hover:border-academy hover:text-academy">Need a new reporting period?</a>
         </div>
-
-        <p class="mt-2 text-sm text-slate-600">Search students, choose a reporting period, and open the official report builder.</p>
-        <form method="get" class="mt-4 grid gap-4 md:grid-cols-4">
-            <input name="search" value="{{ filters.search }}" placeholder="Search student" class="rounded-2xl border border-slate-300 px-4 py-3">
-            <input name="grade" value="{{ filters.grade }}" placeholder="Grade" class="rounded-2xl border border-slate-300 px-4 py-3">
-            <input name="class_stream" value="{{ filters.class_stream }}" placeholder="Class" class="rounded-2xl border border-slate-300 px-4 py-3">
-            <input name="subject_filter" value="{{ filters.subject_filter }}" placeholder="Subject" class="rounded-2xl border border-slate-300 px-4 py-3">
-            <div class="md:col-span-4">
-                <button type="submit" class="rounded-2xl bg-slate-900 px-5 py-3 text-white">Filter students</button>
-            </div>
-        </form>
 
         <form method="post" class="mt-6 space-y-4">
             {% csrf_token %}
@@ -107,27 +32,44 @@
                 </select>
             </div>
 
-            <div class="overflow-hidden rounded-3xl border border-slate-200">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-100">
-                        <tr>
-                            <th class="px-4 py-3 text-left"><input type="checkbox" id="select-all-report-students"></th>
-                            <th class="px-4 py-3 text-left">Student</th>
-                            <th class="px-4 py-3 text-left">Class</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200 bg-white">
-                        {% for student in students %}
-                        <tr>
-                            <td class="px-4 py-3"><input type="checkbox" class="report-student-checkbox" name="selected_students" value="{{ student.id }}"></td>
-                            <td class="px-4 py-3">{{ student.student_id }} - {{ student.user.get_full_name|default:student.user.username }}</td>
-                            <td class="px-4 py-3">{{ student.current_class }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="3" class="px-4 py-6 text-center text-slate-600">No students available for the selected filters.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="space-y-2">
+                <label for="report-student-search" class="block text-sm font-medium text-slate-700">Search Student</label>
+                <div class="relative" data-report-student-picker>
+                    <input type="hidden" name="selected_students" id="report-selected-student-id">
+                    <input
+                        type="text"
+                        id="report-student-search"
+                        class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-academy focus:outline-none focus:ring-2 focus:ring-rose-100"
+                        placeholder="Click to search approved students"
+                        autocomplete="off"
+                        aria-expanded="false"
+                        aria-controls="report-student-dropdown"
+                        role="combobox"
+                    >
+                    <div id="report-student-dropdown" class="absolute left-0 right-0 top-full z-20 mt-2 hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200">
+                        <div class="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Approved students</p>
+                            <p class="mt-1 text-xs text-slate-500">Type a name to narrow the list.</p>
+                        </div>
+                        <div id="report-student-results" class="max-h-80 overflow-y-auto py-2">
+                            {% for student in students %}
+                            <button
+                                type="button"
+                                class="report-student-option flex w-full flex-col items-start gap-1 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                                data-student-id="{{ student.id }}"
+                                data-student-name="{{ student.user.get_full_name|default:student.user.username|escape }}"
+                                data-student-class="{{ student.current_class|escape }}"
+                            >
+                                <span class="font-medium text-slate-900">{{ student.user.get_full_name|default:student.user.username }}</span>
+                                <span class="text-xs uppercase tracking-[0.2em] text-slate-500">{{ student.current_class }}</span>
+                            </button>
+                            {% empty %}
+                            <div class="px-4 py-6 text-sm text-slate-600">No approved students are available.</div>
+                            {% endfor %}
+                            <div id="report-student-empty" class="hidden px-4 py-6 text-sm text-slate-600">No students match your search.</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div>
@@ -296,13 +238,104 @@
 </div>
 
 <script>
-    const selectAllReportStudents = document.getElementById('select-all-report-students');
-    if (selectAllReportStudents) {
-        selectAllReportStudents.addEventListener('change', function () {
-            document.querySelectorAll('.report-student-checkbox').forEach(function (checkbox) {
-                checkbox.checked = selectAllReportStudents.checked;
+    (function () {
+        const pickerRoot = document.querySelector('[data-report-student-picker]');
+        const studentSearchInput = document.getElementById('report-student-search');
+        const selectedStudentInput = document.getElementById('report-selected-student-id');
+        const studentDropdown = document.getElementById('report-student-dropdown');
+        const studentResults = document.getElementById('report-student-results');
+        const studentEmpty = document.getElementById('report-student-empty');
+        const reportForm = studentSearchInput ? studentSearchInput.closest('form') : null;
+
+        if (!pickerRoot || !studentSearchInput || !selectedStudentInput || !studentDropdown || !studentResults || !reportForm) {
+            return;
+        }
+
+        const options = Array.from(studentResults.querySelectorAll('.report-student-option'));
+
+        const openDropdown = function () {
+            studentDropdown.classList.remove('hidden');
+            studentSearchInput.setAttribute('aria-expanded', 'true');
+        };
+
+        const closeDropdown = function () {
+            studentDropdown.classList.add('hidden');
+            studentSearchInput.setAttribute('aria-expanded', 'false');
+        };
+
+        const renderResults = function () {
+            const query = studentSearchInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            options.forEach(function (option) {
+                const searchText = option.dataset.studentName.toLowerCase() + ' ' + option.dataset.studentClass.toLowerCase() + ' ' + option.dataset.studentId;
+                const matches = !query || searchText.includes(query);
+                option.classList.toggle('hidden', !matches);
+                if (matches) {
+                    visibleCount += 1;
+                }
+            });
+
+            if (studentEmpty) {
+                studentEmpty.classList.toggle('hidden', visibleCount !== 0);
+            }
+        };
+
+        const setSelectedStudent = function (option) {
+            const studentName = option.dataset.studentName;
+            const studentClass = option.dataset.studentClass;
+            const studentId = option.dataset.studentId;
+
+            studentSearchInput.value = `${studentName} - ${studentClass}`;
+            selectedStudentInput.value = studentId;
+            closeDropdown();
+        };
+
+        studentSearchInput.addEventListener('focus', function () {
+            openDropdown();
+            renderResults();
+        });
+
+        studentSearchInput.addEventListener('click', function () {
+            openDropdown();
+            renderResults();
+        });
+
+        studentSearchInput.addEventListener('input', function () {
+            selectedStudentInput.value = '';
+            openDropdown();
+            renderResults();
+        });
+
+        options.forEach(function (option) {
+            option.addEventListener('click', function () {
+                setSelectedStudent(option);
             });
         });
-    }
+
+        document.addEventListener('click', function (event) {
+            if (!pickerRoot.contains(event.target)) {
+                closeDropdown();
+            }
+        });
+
+        studentSearchInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeDropdown();
+                studentSearchInput.blur();
+            }
+        });
+
+        reportForm.addEventListener('submit', function (event) {
+            if (!selectedStudentInput.value) {
+                event.preventDefault();
+                openDropdown();
+                studentSearchInput.focus();
+                studentSearchInput.setCustomValidity('Choose a student from the dropdown.');
+                studentSearchInput.reportValidity();
+                studentSearchInput.setCustomValidity('');
+            }
+        });
+    })();
 </script>
 {% endblock %}
