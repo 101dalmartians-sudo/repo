@@ -436,58 +436,64 @@
           </div>
         </div>
 
-        {% with hero_image=gallery_images.0 second_image=gallery_images.1 third_image=gallery_images.2 fourth_image=gallery_images.3 %}
+        {% with hero_image_1=homepage_settings.hero_image_1 hero_image_2=homepage_settings.hero_image_2 hero_image_3=homepage_settings.hero_image_3 hero_image_4=homepage_settings.hero_image_4 hero_fallback_1=gallery_images.0 hero_fallback_2=gallery_images.1 hero_fallback_3=gallery_images.2 hero_fallback_4=gallery_images.3 %}
         <div id="gallery" class="section-pad">
           <div class="collage-grid">
             <figure class="collage-card collage-large hover-lift">
-              {% if homepage_settings.hero_image %}
-                <img src="{{ homepage_settings.hero_image.url }}" alt="Aspire Academy campus" class="feature-image" loading="eager" decoding="async">
-              {% elif hero_image %}
-                <img src="{{ hero_image.image.url }}" alt="{{ hero_image.title|default:'Aspire Academy campus highlight' }}" class="feature-image" loading="eager" decoding="async">
+              {% if hero_image_1 %}
+                <img src="{{ hero_image_1.url }}" alt="Aspire Academy campus" class="feature-image" loading="eager" decoding="async">
+              {% elif hero_fallback_1 %}
+                <img src="{{ hero_fallback_1.image.url }}" alt="{{ hero_fallback_1.title|default:'Aspire Academy campus highlight' }}" class="feature-image" loading="eager" decoding="async">
               {% else %}
                 <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy campus" class="feature-image" loading="eager" decoding="async">
               {% endif %}
               <figcaption class="collage-overlay">
                 <p class="text-xs font-semibold uppercase tracking-[0.3em] text-white/75">Campus Life</p>
                 <p class="mt-2 text-lg font-semibold leading-tight">
-                  {{ hero_image.title|default:'A vibrant learning environment' }}
+                  {{ hero_fallback_1.title|default:'A vibrant learning environment' }}
                 </p>
                 <p class="mt-2 text-sm text-white/80">
-                  {{ hero_image.caption|default:'Modern spaces designed for learning, growth, and confidence.' }}
+                  {{ hero_fallback_1.caption|default:'Modern spaces designed for learning, growth, and confidence.' }}
                 </p>
               </figcaption>
             </figure>
 
             <figure class="collage-card collage-small hover-lift">
-              {% if second_image %}
-                <img src="{{ second_image.image.url }}" alt="{{ second_image.title|default:'Aspire Academy experience' }}" class="feature-image" loading="lazy" decoding="async">
+              {% if hero_image_2 %}
+                <img src="{{ hero_image_2.url }}" alt="Aspire Academy experience" class="feature-image" loading="lazy" decoding="async">
+              {% elif hero_fallback_2 %}
+                <img src="{{ hero_fallback_2.image.url }}" alt="{{ hero_fallback_2.title|default:'Aspire Academy experience' }}" class="feature-image" loading="lazy" decoding="async">
               {% else %}
                 <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy experience" class="feature-image" loading="lazy" decoding="async">
               {% endif %}
               <figcaption class="collage-overlay">
-                <p class="text-sm font-semibold">{{ second_image.title|default:'Learning moments' }}</p>
+                <p class="text-sm font-semibold">{{ hero_fallback_2.title|default:'Learning moments' }}</p>
               </figcaption>
             </figure>
 
             <figure class="collage-card collage-small hover-lift">
-              {% if third_image %}
-                <img src="{{ third_image.image.url }}" alt="{{ third_image.title|default:'Aspire Academy activity' }}" class="feature-image" loading="lazy" decoding="async">
+              {% if hero_image_3 %}
+                <img src="{{ hero_image_3.url }}" alt="Aspire Academy activity" class="feature-image" loading="lazy" decoding="async">
+              {% elif hero_fallback_3 %}
+                <img src="{{ hero_fallback_3.image.url }}" alt="{{ hero_fallback_3.title|default:'Aspire Academy activity' }}" class="feature-image" loading="lazy" decoding="async">
               {% else %}
                 <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy activity" class="feature-image" loading="lazy" decoding="async">
               {% endif %}
               <figcaption class="collage-overlay">
-                <p class="text-sm font-semibold">{{ third_image.title|default:'Student engagement' }}</p>
+                <p class="text-sm font-semibold">{{ hero_fallback_3.title|default:'Student engagement' }}</p>
               </figcaption>
             </figure>
 
             <figure class="collage-card collage-small hover-lift">
-              {% if fourth_image %}
-                <img src="{{ fourth_image.image.url }}" alt="{{ fourth_image.title|default:'Aspire Academy gallery image' }}" class="feature-image" loading="lazy" decoding="async">
+              {% if hero_image_4 %}
+                <img src="{{ hero_image_4.url }}" alt="Aspire Academy gallery image" class="feature-image" loading="lazy" decoding="async">
+              {% elif hero_fallback_4 %}
+                <img src="{{ hero_fallback_4.image.url }}" alt="{{ hero_fallback_4.title|default:'Aspire Academy gallery image' }}" class="feature-image" loading="lazy" decoding="async">
               {% else %}
                 <img src="{% static 'images/home_bg.jpg' %}" alt="Aspire Academy gallery image" class="feature-image" loading="lazy" decoding="async">
               {% endif %}
               <figcaption class="collage-overlay">
-                <p class="text-sm font-semibold">{{ fourth_image.title|default:'School community' }}</p>
+                <p class="text-sm font-semibold">{{ hero_fallback_4.title|default:'School community' }}</p>
               </figcaption>
             </figure>
           </div>

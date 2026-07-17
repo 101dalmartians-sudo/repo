@@ -88,7 +88,10 @@ class HomepageSettings(models.Model):
     hero_description = models.TextField(
         default='We provide a nurturing environment where learners grow academically, socially and personally.'
     )
-    hero_image = models.ImageField(upload_to='homepage/settings/', blank=True, null=True)
+    hero_image_1 = models.ImageField('Hero Image 1', upload_to='homepage/settings/', blank=True, null=True)
+    hero_image_2 = models.ImageField('Hero Image 2', upload_to='homepage/settings/', blank=True, null=True)
+    hero_image_3 = models.ImageField('Hero Image 3', upload_to='homepage/settings/', blank=True, null=True)
+    hero_image_4 = models.ImageField('Hero Image 4', upload_to='homepage/settings/', blank=True, null=True)
     footer_text = models.TextField(
         default='Premium learning, modern care, and a connected school community.'
     )

@@ -50,11 +50,22 @@ class HomePageContactSectionAdmin(admin.ModelAdmin):
 class HomepageSettingsAdminForm(forms.ModelForm):
     class Meta:
         model = HomepageSettings
-        fields = ['hero_heading', 'hero_description', 'hero_image', 'footer_text', 'contact_section']
+        fields = [
+            'hero_heading',
+            'hero_description',
+            'hero_image_1',
+            'hero_image_2',
+            'hero_image_3',
+            'hero_image_4',
+            'footer_text',
+            'contact_section',
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['hero_image'].help_text = 'Recommended: 1600 x 1100 px or larger, landscape orientation, JPG/PNG/WebP, ideally under 2 MB.'
+        hero_help_text = 'Recommended: 1600 x 1100 px or larger, landscape orientation, JPG/PNG/WebP, ideally under 2 MB.'
+        for field_name in ['hero_image_1', 'hero_image_2', 'hero_image_3', 'hero_image_4']:
+            self.fields[field_name].help_text = hero_help_text
 
 
 class HomepageFeatureCardInlineForm(forms.ModelForm):
@@ -79,7 +90,16 @@ class HomepageFeatureCardInline(admin.TabularInline):
 class HomepageSettingsAdmin(admin.ModelAdmin):
     form = HomepageSettingsAdminForm
     list_display = ['id', 'hero_heading', 'contact_section', 'updated_at']
-    fields = ['hero_heading', 'hero_description', 'hero_image', 'footer_text', 'contact_section']
+    fields = [
+        'hero_heading',
+        'hero_description',
+        'hero_image_1',
+        'hero_image_2',
+        'hero_image_3',
+        'hero_image_4',
+        'footer_text',
+        'contact_section',
+    ]
     inlines = [HomepageFeatureCardInline]
 
     def has_add_permission(self, request):
