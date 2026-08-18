@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -154,10 +154,14 @@ class FinancialRecord(models.Model):
                 errors['transport_paid'] = 'Transport paid cannot exceed transport fee.'
             if self.tuition_paid > self.school_tuition:
                 errors['tuition_paid'] = 'Tuition paid cannot exceed school tuition.'
+            # transport_balance/tuition_balance are derived (fee - paid) and are
+            # marked readonly on some admin forms, so they may not be present as
+            # form fields. Report these as non-field errors instead of keying to
+            # the derived field name, which Django cannot map on those forms.
             if self.transport_balance < Decimal('0.00'):
-                errors['transport_balance'] = 'Transport balance cannot be negative.'
+                errors.setdefault(NON_FIELD_ERRORS, []).append('Transport balance cannot be negative.')
             if self.tuition_balance < Decimal('0.00'):
-                errors['tuition_balance'] = 'Tuition balance cannot be negative.'
+                errors.setdefault(NON_FIELD_ERRORS, []).append('Tuition balance cannot be negative.')
 
         if errors:
             raise ValidationError(errors)

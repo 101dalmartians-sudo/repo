@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.contrib.auth.models import Permission, User
 from django.db.models.deletion import ProtectedError
+from django.forms import modelform_factory
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -526,6 +527,37 @@ class FinancialRecordAdminPolicyTests(TestCase):
         self.assertIn('tuition_balance', readonly)
         self.assertNotIn('transport_paid', readonly)
         self.assertNotIn('tuition_paid', readonly)
+
+    def test_overpayment_via_readonly_balance_form_does_not_crash(self):
+        """Regression test: submitting an overpayment through a form that
+        excludes the derived balance fields (as the admin does via
+        readonly_fields) must produce a normal validation error instead of
+        Django's 'form has no field named ...' ValueError crash."""
+        user = User.objects.create_user('overpay-student', 'overpay@example.com', 'password')
+        student = StudentProfile.objects.create(
+            user=user, student_id='STUOVR1', current_class='Form 1', approved=True,
+        )
+
+        FinancialRecordForm = modelform_factory(
+            FinancialRecord,
+            fields=[
+                'student', 'term', 'year', 'due_date',
+                'transport_fee', 'transport_paid',
+                'school_tuition', 'tuition_paid',
+            ],
+        )
+        form = FinancialRecordForm(data={
+            'student': student.pk,
+            'term': 'term1',
+            'year': 2026,
+            'transport_fee': '100.00',
+            'transport_paid': '150.00',
+            'school_tuition': '0.00',
+            'tuition_paid': '0.00',
+        })
+
+        self.assertFalse(form.is_valid())
+        self.assertTrue(form.errors)
 
 
 class FinancialRecordBusinessRuleRegressionTests(TestCase):
