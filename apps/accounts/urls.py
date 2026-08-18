@@ -12,4 +12,5 @@ urlpatterns = [
     path('edit-profile/<str:profile_type>/<int:profile_id>/', views.edit_profile, name='edit_profile'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('change-password/', views.change_password, name='change_password'),
 ]

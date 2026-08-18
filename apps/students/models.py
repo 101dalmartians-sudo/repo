@@ -27,6 +27,12 @@ class StudentProfile(models.Model):
     def get_active_financial_records(self):
         return self.financial_records.filter(total_balance__gt=0).order_by('year', 'term')
 
+    def is_paid_for_period(self, period):
+        records = self.financial_records.filter(status='paid', year=period.year)
+        if period.term:
+            records = records.filter(term=period.term)
+        return records.exists()
+
     def get_balance_summary(self):
         records = self.financial_records.all()
         return {
@@ -189,6 +195,23 @@ class FinancialRecord(models.Model):
     def is_overdue(self):
         return self.due_date and self.due_date < timezone.now().date() and self.total_balance > 0
 
+    def mark_as_paid(self, user=None):
+        """Clear outstanding balances so the record is fully paid."""
+        self.transport_paid = self.transport_fee
+        self.tuition_paid = self.school_tuition
+        self.last_payment_date = timezone.now()
+        if user is not None:
+            self.updated_by = user
+        self.save()
+
+    def mark_as_unpaid(self, user=None):
+        """Reset payments so the record shows as outstanding again."""
+        self.transport_paid = Decimal('0.00')
+        self.tuition_paid = Decimal('0.00')
+        if user is not None:
+            self.updated_by = user
+        self.save()
+
     def apply_payment(self, amount):
         remaining = Decimal(amount)
         if remaining <= 0:
@@ -212,6 +235,28 @@ class FinancialRecord(models.Model):
             'transport_paid', 'transport_balance', 'tuition_paid', 'tuition_balance', 'updated_at'
         ])
         return remaining
+
+
+class TermInvoice(models.Model):
+    TERM_CHOICES = FinancialRecord.TERM_CHOICES
+
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='term_invoices')
+    title = models.CharField(max_length=160, default='Next term fees')
+    term = models.CharField(max_length=10, choices=TERM_CHOICES)
+    year = models.PositiveIntegerField()
+    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    due_date = models.DateField(null=True, blank=True)
+    description = models.TextField(blank=True)
+    is_published = models.BooleanField(default=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_term_invoices')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-year', 'term', 'student__student_id']
+
+    def __str__(self):
+        return f'{self.student} - {self.title} ({self.year})'
 
 
 class Payment(models.Model):

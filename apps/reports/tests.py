@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 
-from apps.students.models import StudentProfile
+from apps.students.models import StudentProfile, FinancialRecord
 from apps.accounts.models import AdminProfile
 from apps.teachers.models import TeacherProfile
 from apps.grades.models import Grade
@@ -459,6 +459,14 @@ class ReportingViewsIntegrationTests(TestCase):
             submission_deadline=now + timedelta(days=5),
             approval_deadline=now + timedelta(days=10),
             status='open',
+        )
+
+        # Reports are only visible to students with a paid financial record
+        # for the matching term/year; keep this in sync with self.period.
+        FinancialRecord.objects.create(
+            student=self.student,
+            term=self.period.term,
+            year=self.period.year,
         )
 
     def test_teacher_can_open_periods_page(self):

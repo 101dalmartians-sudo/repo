@@ -14,6 +14,7 @@ from .models import (
     StudentProfile,
     FinancialRecord,
     Payment,
+    TermInvoice,
     AttendanceRecord,
     ExamSchedule,
     ExamResult,
@@ -37,6 +38,7 @@ def dashboard(request):
         tuition_balance=0
     )
     upcoming_exams = ExamSchedule.objects.filter(exam_date__gte=timezone.now().date()).order_by('exam_date')[:3]
+    invoices = TermInvoice.objects.filter(student=profile, is_published=True).order_by('-year', 'term')[:5]
 
     return render(request, 'students/dashboard.html', {
         'assignments': assignments,
@@ -44,6 +46,7 @@ def dashboard(request):
         'news': news,
         'overdue_records': overdue_records,
         'upcoming_exams': upcoming_exams,
+        'term_invoices': invoices,
         'student_report_metrics': BiWeeklyReportService.get_student_metrics(profile),
     })
 

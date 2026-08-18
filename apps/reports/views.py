@@ -8,6 +8,11 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.db.models.deletion import ProtectedError
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from apps.grades.models import Grade
 from apps.grades.services import AcademicService
@@ -33,6 +38,10 @@ def _admin_guard(request):
 
 def _student_guard(request):
     return hasattr(request.user, 'student_profile') and request.user.student_profile.approved
+
+
+def _student_report_access(student, report):
+    return student.is_paid_for_period(report.period)
 
 
 def _compile_academic_snapshot(student, period):
@@ -408,7 +417,7 @@ def teacher_periods(request):
 
 @login_required
 def teacher_report_editor(request, period_id, student_id):
-    if not _teacher_guard(request):
+    if not (_teacher_guard(request) or _admin_guard(request)):
         raise Http404
 
     period = get_object_or_404(ReportingPeriod, pk=period_id)
@@ -461,10 +470,6 @@ def teacher_report_editor(request, period_id, student_id):
         report.updated_by = request.user
 
         action = request.POST.get('action')
-        if report.status in {'approved', 'published', 'archived'}:
-            messages.error(request, f'Cannot edit a report in {report.get_status_display()} state.')
-            return redirect('reports:teacher_report_editor', period_id=period.id, student_id=student.id)
-
         report.save(update_fields=['content', 'updated_by', 'updated_at'])
         _log_report_action(request.user, 'Bi-weekly report updated', report)
 
@@ -624,7 +629,10 @@ def student_reports(request):
         raise Http404
 
     student = request.user.student_profile
-    reports = student.bi_weekly_reports.filter(status='published').select_related('period', 'teacher', 'approved_by')
+    reports = BiWeeklyReport.objects.none()
+    report_accessible = any(student.is_paid_for_period(period) for period in ReportingPeriod.objects.all())
+    if report_accessible:
+        reports = student.bi_weekly_reports.filter(status='published').select_related('period', 'teacher', 'approved_by')
 
     # Lightweight end-of-term summary from existing grades (no duplicate storage).
     term_summary = defaultdict(lambda: {'total': 0, 'sum': 0.0})
@@ -641,6 +649,7 @@ def student_reports(request):
         'reports': reports.order_by('-published_at'),
         'end_of_term_reports': sorted(end_of_term_reports, key=lambda item: item['term']),
         'student_metrics': BiWeeklyReportService.get_student_metrics(student),
+        'report_accessible': report_accessible,
     }
     return render(request, 'reports/student_reports.html', context)
 
@@ -656,6 +665,8 @@ def student_report_detail(request, report_id):
         student=request.user.student_profile,
         status='published',
     )
+    if not _student_report_access(request.user.student_profile, report):
+        raise Http404
     academic = _compile_academic_snapshot(report.student, report.period)
     subject_rows, report_content = _get_subject_rows(report, academic)
     return render(request, 'reports/student_report_detail.html', {
@@ -678,6 +689,8 @@ def student_report_print(request, report_id):
         student=request.user.student_profile,
         status='published',
     )
+    if not _student_report_access(request.user.student_profile, report):
+        raise Http404
     academic = _compile_academic_snapshot(report.student, report.period)
     subject_rows, report_content = _get_subject_rows(report, academic)
     return render(request, 'reports/student_report_detail.html', {
@@ -700,47 +713,40 @@ def student_report_download(request, report_id):
         student=request.user.student_profile,
         status='published',
     )
+    if not _student_report_access(request.user.student_profile, report):
+        raise Http404
     academic = _compile_academic_snapshot(report.student, report.period)
     subject_rows, report_content = _get_subject_rows(report, academic)
-
-    lines = [
-        f"Aspire Academy Bi-Weekly Report",
-        f"Student: {report.student}",
-        f"Period: {report.period.name} ({report.period.start_date} to {report.period.end_date})",
-        f"Teacher: {report.teacher.get_full_name() if report.teacher else '-'}",
-        f"Published: {report.published_at}",
-        '',
-        'Academic Performance',
-        f"Average Percentage: {academic['average_percentage']:.2f}",
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename=aspire-academy-report-{report.id}.pdf'
+    document = SimpleDocTemplate(response, pagesize=A4, rightMargin=18 * mm, leftMargin=18 * mm, topMargin=18 * mm, bottomMargin=18 * mm)
+    styles = getSampleStyleSheet()
+    styles['Title'].textColor = colors.HexColor('#a30000')
+    styles['Heading2'].textColor = colors.HexColor('#182235')
+    story = [
+        Paragraph('ASPIRE ACADEMY', styles['Title']),
+        Paragraph('Student Progress Report', styles['Heading2']),
+        Spacer(1, 6 * mm),
+        Paragraph(f'<b>Student:</b> {report.student} &nbsp;&nbsp; <b>Reporting period:</b> {report.period.name}', styles['BodyText']),
+        Paragraph(f'<b>Teacher:</b> {report.teacher or "-"} &nbsp;&nbsp; <b>Published:</b> {report.published_at:%d %b %Y}', styles['BodyText']),
+        Spacer(1, 6 * mm),
+        Paragraph('Academic Performance', styles['Heading2']),
     ]
-    for grade in subject_rows:
-        line = f"- {grade['subject']}: {grade['percentage']}% ({grade['cambridge_letter_grade']})"
-        if grade['comment']:
-            line = f"{line} | Comment: {grade['comment']}"
-        lines.append(line)
-
-    lines.extend([
-        '',
-        'Attendance',
-        f"Attendance %: {academic['attendance_percentage']:.2f}",
-        f"Present: {academic['present_count']}",
-        f"Absent: {academic['absent_count']}",
-        f"Late: {academic['late_count']}",
-        '',
-        'Teacher Commentary',
-        f"Strengths: {report_content.get('strengths', '')}",
-        f"Areas For Improvement: {report_content.get('areas_for_improvement', '')}",
-        f"Recommendations: {report_content.get('recommendations', '')}",
-        f"General Comments: {report_content.get('general_comments', '')}",
-        f"Additional Comments: {report_content.get('additional_comments', '')}",
-        '',
-        'Approval',
-        f"Approved By: {report.approved_by}",
-        f"Approved At: {report.approved_at}",
-    ])
-
-    response = HttpResponse('\n'.join(lines), content_type='text/plain')
-    response['Content-Disposition'] = f'attachment; filename=bi-weekly-report-{report.id}.txt'
+    table_data = [['Subject', 'Percentage', 'Grade', 'Teacher comment']]
+    table_data.extend([[row['subject'], f"{row['percentage']}%", row['cambridge_letter_grade'], row['comment'] or '-'] for row in subject_rows])
+    table = Table(table_data, colWidths=[42 * mm, 28 * mm, 22 * mm, 82 * mm], repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#a30000')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#d7dce5')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#fafafa')),
+    ]))
+    story.extend([table, Spacer(1, 6 * mm), Paragraph('Attendance', styles['Heading2']), Paragraph(f"Attendance: {academic['attendance_percentage']:.2f}% &nbsp;&nbsp; Present: {academic['present_count']} &nbsp;&nbsp; Absent: {academic['absent_count']} &nbsp;&nbsp; Late: {academic['late_count']}", styles['BodyText']), Spacer(1, 6 * mm), Paragraph('Teacher Commentary', styles['Heading2'])])
+    for label, key in [('Strengths', 'strengths'), ('Areas for Improvement', 'areas_for_improvement'), ('Recommendations', 'recommendations'), ('General Comments', 'general_comments'), ('Additional Comments', 'additional_comments')]:
+        story.append(Paragraph(f'<b>{label}:</b> {report_content.get(key) or "-"}', styles['BodyText']))
+        story.append(Spacer(1, 2 * mm))
+    document.build(story)
     return response
 
 

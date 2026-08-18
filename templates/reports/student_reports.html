@@ -6,6 +6,11 @@
         <h1 class="text-3xl font-semibold text-slate-900">Progress Reports</h1>
         <p class="mt-2 text-slate-600">Bi-weekly reports and end-of-term summary snapshots.</p>
         <p class="mt-2 text-sm text-slate-500">Reports Available: {{ student_metrics.available }}</p>
+        {% if not report_accessible %}
+        <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            Reports are available after the applicable term fees have been fully paid.
+        </div>
+        {% endif %}
     </div>
 
     <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">

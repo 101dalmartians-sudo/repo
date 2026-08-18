@@ -2,8 +2,9 @@ import csv
 import datetime
 from decimal import Decimal
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.http import HttpResponse
+from django.utils.html import format_html
 from openpyxl import Workbook
 
 from .models import (
@@ -15,6 +16,7 @@ from .models import (
     ExamSchedule,
     ExamResult,
     AuditLog,
+    TermInvoice,
 )
 
 
@@ -83,17 +85,65 @@ class StudentProfileAdmin(admin.ModelAdmin):
 
 @admin.register(FinancialRecord)
 class FinancialRecordAdmin(admin.ModelAdmin):
-    list_display = ('student', 'term', 'year', 'due_date', 'total_fee', 'total_paid', 'total_balance')
-    list_filter = ('term', 'year')
+    list_display = ('student', 'term', 'year', 'due_date', 'total_fee', 'total_paid', 'total_balance', 'status_badge')
+    list_filter = ('term', 'year', 'status')
     search_fields = ('student__student_id', 'student__user__username')
     fieldsets = (
         ('Student Information', {'fields': ('student',)}),
         ('Term & Due Date', {'fields': ('term', 'year', 'due_date')}),
         ('Transport Fee', {'fields': ('transport_fee', 'transport_paid', 'transport_balance')}),
         ('School Tuition', {'fields': ('school_tuition', 'tuition_paid', 'tuition_balance')}),
+        ('Payment Status', {'fields': ('status_badge',)}),
     )
-    readonly_fields = ('transport_balance', 'tuition_balance')
+    readonly_fields = ('transport_balance', 'tuition_balance', 'status_badge')
+    actions = [export_to_csv, export_to_xlsx, export_to_json, 'mark_selected_paid', 'mark_selected_unpaid']
+
+    def status_badge(self, obj):
+        colors = {
+            'paid': '#28a745',
+            'partial': '#ffc107',
+            'overdue': '#dc3545',
+            'pending': '#6c757d',
+        }
+        color = colors.get(obj.status, '#6c757d')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 5px 10px; '
+            'border-radius: 3px;">{}</span>',
+            color,
+            obj.get_status_display(),
+        )
+    status_badge.short_description = 'Payment Status'
+
+    @admin.action(description='Mark selected records as Paid')
+    def mark_selected_paid(self, request, queryset):
+        count = 0
+        for record in queryset:
+            record.mark_as_paid(user=request.user)
+            count += 1
+        self.message_user(request, f'Marked {count} record(s) as paid.', messages.SUCCESS)
+
+    @admin.action(description='Mark selected records as Unpaid')
+    def mark_selected_unpaid(self, request, queryset):
+        count = 0
+        for record in queryset:
+            record.mark_as_unpaid(user=request.user)
+            count += 1
+        self.message_user(request, f'Marked {count} record(s) as unpaid.', messages.SUCCESS)
+
+
+@admin.register(TermInvoice)
+class TermInvoiceAdmin(admin.ModelAdmin):
+    list_display = ('student', 'title', 'term', 'year', 'amount', 'due_date', 'is_published')
+    list_filter = ('term', 'year', 'is_published')
+    search_fields = ('student__student_id', 'student__user__username', 'title')
+    list_editable = ('is_published',)
+    readonly_fields = ('created_by', 'created_at', 'updated_at')
     actions = [export_to_csv, export_to_xlsx, export_to_json]
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Payment)

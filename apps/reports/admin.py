@@ -178,7 +178,7 @@ class BiWeeklyReportAdmin(admin.ModelAdmin):
     list_filter = ['status', 'period__year', 'period__term', 'created_at']
     search_fields = ['student__student_id', 'student__user__first_name', 'student__user__last_name']
     readonly_fields = [
-        'period', 'student', 'teacher', 'created_at', 'updated_at', 
+        'created_at', 'updated_at',
         'submitted_at', 'submitted_by', 'approved_at', 'approved_by', 
         'published_at', 'content_display'
     ]
@@ -291,6 +291,10 @@ class BiWeeklyReportAdmin(admin.ModelAdmin):
             rows,
         )
     content_display.short_description = 'Content'
+
+    def save_model(self, request, obj, form, change):
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
     
     def actions_display(self, obj):
         buttons = []
