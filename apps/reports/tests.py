@@ -3,7 +3,8 @@ Tests for Bi-Weekly Student Reporting System
 """
 
 from decimal import Decimal
-from django.contrib.auth.models import User, Group
+from django.contrib import admin
+from django.contrib.auth.models import Permission, User, Group
 from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -17,6 +18,7 @@ from apps.reports.models import (
     ReportingPeriod, ReportField, BiWeeklyReport, ReportingAnalytics
 )
 from apps.reports.services import BiWeeklyReportService
+from apps.reports.admin import ReportingPeriodAdmin, ReportingAnalyticsAdmin
 
 
 class ReportingPeriodTests(TestCase):
@@ -361,6 +363,34 @@ class ReportingAnalyticsTests(TestCase):
         """Test analytics creation"""
         self.assertEqual(self.analytics.total_students, 100)
         self.assertEqual(self.analytics.completion_percentage, Decimal('65.00'))
+
+    def test_authorized_period_delete_can_cascade_analytics(self):
+        admin_user = User.objects.create_user('report_admin', password='password', is_staff=True)
+        permissions = Permission.objects.filter(
+            content_type__app_label='reports',
+            codename__in=['delete_reportingperiod', 'delete_reportinganalytics'],
+        )
+        admin_user.user_permissions.add(*permissions)
+        request = type('Request', (), {'user': admin_user})()
+
+        period_admin = ReportingPeriodAdmin(ReportingPeriod, admin.site)
+        analytics_admin = ReportingAnalyticsAdmin(ReportingAnalytics, admin.site)
+        self.assertTrue(analytics_admin.has_delete_permission(request, self.analytics))
+
+        unauthorized_user = User.objects.create_user('report_viewer', password='password', is_staff=True)
+        unauthorized_request = type('Request', (), {'user': unauthorized_user})()
+        self.assertFalse(analytics_admin.has_delete_permission(unauthorized_request, self.analytics))
+
+        deleted_objects, model_count, perms_needed, protected = period_admin.get_deleted_objects(
+            [self.period], request
+        )
+
+        self.assertFalse(perms_needed)
+        self.assertFalse(protected)
+        self.assertIn('Reporting Analytics', model_count)
+
+        self.period.delete()
+        self.assertFalse(ReportingAnalytics.objects.filter(pk=self.analytics.pk).exists())
 
 
 class ReportingWorkflowTests(TransactionTestCase):
