@@ -2,7 +2,7 @@ from django import forms
 
 from apps.students.models import StudentProfile
 
-from .models import ReportingPeriod
+from .models import ReportingPeriod, ProgressNote
 
 
 class TeacherReportContentForm(forms.Form):
@@ -39,7 +39,6 @@ class TeacherStudentSelectForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['student'].queryset = StudentProfile.objects.filter(approved=True).select_related('user').order_by('student_id')
-
 
 class TeacherStudentMultiSelectForm(forms.Form):
     students = forms.ModelMultipleChoiceField(
@@ -81,3 +80,21 @@ class ReportingPeriodManageForm(forms.ModelForm):
             'approval_deadline': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': TeacherReportContentForm.field_class}),
             'publish_date': forms.DateInput(attrs={'type': 'date', 'class': TeacherReportContentForm.field_class}),
         }
+
+
+class ProgressNoteForm(forms.ModelForm):
+    class Meta:
+        model = ProgressNote
+        fields = ['student', 'body']
+        widgets = {
+            'student': forms.Select(attrs={'class': TeacherReportContentForm.field_class}),
+            'body': forms.Textarea(attrs={'rows': 4, 'class': TeacherReportContentForm.field_class, 'placeholder': 'Share an ongoing progress update, e.g. "David has shown significant improvement in reading and class participation..."'}),
+        }
+        labels = {
+            'body': 'Progress update',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['student'].queryset = StudentProfile.objects.filter(approved=True).select_related('user').order_by('student_id')
+

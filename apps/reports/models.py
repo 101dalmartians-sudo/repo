@@ -212,6 +212,28 @@ class BiWeeklyReport(models.Model):
         self.save(update_fields=['status', 'updated_at'])
 
 
+class ProgressNote(models.Model):
+    """
+    Lightweight, ongoing narrative update from a teacher/admin about a
+    student's development. Not a formal report: no grades, no periods,
+    no approval workflow. Visible to the student/parent as soon as created.
+    """
+    student = models.ForeignKey('students.StudentProfile', on_delete=models.CASCADE, related_name='progress_notes')
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='progress_notes_authored')
+    body = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Progress Note'
+        verbose_name_plural = 'Progress Notes'
+
+    def __str__(self):
+        return f"Progress note for {self.student} ({self.created_at:%Y-%m-%d})"
+
+
 class ReportingAnalytics(models.Model):
     """
     Aggregated analytics for bi-weekly reporting.

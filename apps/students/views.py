@@ -1,14 +1,13 @@
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Avg, Count, Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 
 from apps.assignments.models import Assignment
 from apps.notifications.models import Notification
 from apps.news.models import News
-from apps.grades.models import Grade
 from apps.reports.services import BiWeeklyReportService
 from .models import (
     StudentProfile,
@@ -83,8 +82,6 @@ def profile_detail(request):
     attendance_queryset = AttendanceRecord.objects.filter(student=profile).order_by('-date')
     attendance = attendance_queryset[:10]
     exams = ExamSchedule.objects.order_by('exam_date')[:10]
-    grades = Grade.objects.filter(student=profile).order_by('term', 'subject')
-    average_grade = grades.aggregate(avg=Avg('percentage'))['avg'] or Decimal('0.00')
     attendance_summary = {
         'present': attendance_queryset.filter(status='present').count(),
         'absent': attendance_queryset.filter(status='absent').count(),
@@ -99,8 +96,6 @@ def profile_detail(request):
         'payments': payments,
         'attendance_records': attendance,
         'exams': exams,
-        'grades': grades,
-        'average_grade': average_grade,
         'attendance_summary': attendance_summary,
         'student_summary': student_summary,
         'term_summaries': term_summaries,

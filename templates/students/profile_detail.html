@@ -37,10 +37,6 @@
             <p><span class="font-semibold">Late:</span> {{ attendance_summary.late }}</p>
           </div>
         </div>
-        <div class="rounded-3xl border border-slate-200 p-4">
-          <h3 class="text-sm uppercase text-slate-500">Academic Average</h3>
-          <p class="mt-4 text-3xl font-semibold text-slate-900">{{ average_grade|floatformat:2 }}%</p>
-        </div>
       </div>
     </div>
     <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
@@ -223,36 +219,6 @@
         <p class="text-slate-600">No exams are currently scheduled.</p>
       {% endif %}
     </div>
-  </div>
-
-  <div class="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200">
-    <h2 class="text-2xl font-semibold mb-4">Grade Report</h2>
-    {% if grades %}
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm text-slate-700">
-          <thead>
-            <tr class="bg-slate-900 text-white">
-              <th class="border border-slate-200 px-4 py-3">Subject</th>
-              <th class="border border-slate-200 px-4 py-3">Term</th>
-              <th class="border border-slate-200 px-4 py-3">Percentage</th>
-              <th class="border border-slate-200 px-4 py-3">Cambridge Grade</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for grade in grades %}
-              <tr class="hover:bg-slate-50">
-                <td class="border border-slate-200 px-4 py-3">{{ grade.subject }}</td>
-                <td class="border border-slate-200 px-4 py-3">{{ grade.term }}</td>
-                <td class="border border-slate-200 px-4 py-3">{{ grade.percentage|floatformat:2 }}%</td>
-                <td class="border border-slate-200 px-4 py-3">{{ grade.cambridge_letter_grade }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="text-slate-600">No grades have been recorded yet.</p>
-    {% endif %}
   </div>
 </div>
 {% endblock %}

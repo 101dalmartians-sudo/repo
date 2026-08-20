@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
@@ -19,8 +17,8 @@ from apps.grades.services import AcademicService
 from apps.students.models import AttendanceRecord, AuditLog, ExamResult, StudentProfile
 from apps.teachers.selectors import get_filtered_students
 
-from .forms import ReportingPeriodManageForm
-from .models import BiWeeklyReport, ReportingPeriod
+from .forms import ProgressNoteForm, ReportingPeriodManageForm
+from .models import BiWeeklyReport, ProgressNote, ReportingPeriod
 from .services import BiWeeklyReportService
 
 
@@ -416,6 +414,30 @@ def teacher_periods(request):
 
 
 @login_required
+def progress_notes(request):
+    if not (_teacher_guard(request) or _admin_guard(request)):
+        raise Http404
+
+    form = ProgressNoteForm()
+    if request.method == 'POST':
+        form = ProgressNoteForm(request.POST)
+        if form.is_valid():
+            note = form.save(commit=False)
+            note.author = request.user
+            note.save()
+            messages.success(request, 'Progress update posted.')
+            return redirect('reports:progress_notes')
+        messages.error(request, 'Please correct the progress update form errors.')
+
+    notes = ProgressNote.objects.select_related('student', 'student__user', 'author').order_by('-created_at')[:50]
+
+    return render(request, 'reports/progress_notes.html', {
+        'form': form,
+        'notes': notes,
+    })
+
+
+@login_required
 def teacher_report_editor(request, period_id, student_id):
     if not (_teacher_guard(request) or _admin_guard(request)):
         raise Http404
@@ -634,20 +656,11 @@ def student_reports(request):
     if report_accessible:
         reports = student.bi_weekly_reports.filter(status='published').select_related('period', 'teacher', 'approved_by')
 
-    # Lightweight end-of-term summary from existing grades (no duplicate storage).
-    term_summary = defaultdict(lambda: {'total': 0, 'sum': 0.0})
-    for grade in Grade.objects.filter(student=student):
-        term_summary[grade.term]['total'] += 1
-        term_summary[grade.term]['sum'] += float(grade.percentage)
-
-    end_of_term_reports = []
-    for term, data in term_summary.items():
-        average = (data['sum'] / data['total']) if data['total'] else 0
-        end_of_term_reports.append({'term': term, 'average': average, 'subjects': data['total']})
+    progress_notes = student.progress_notes.select_related('author').order_by('-created_at')
 
     context = {
-        'reports': reports.order_by('-published_at'),
-        'end_of_term_reports': sorted(end_of_term_reports, key=lambda item: item['term']),
+        'reports': reports.order_by('-period__start_date'),
+        'progress_notes': progress_notes,
         'student_metrics': BiWeeklyReportService.get_student_metrics(student),
         'report_accessible': report_accessible,
     }

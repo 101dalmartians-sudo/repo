@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl space-y-6">
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h1 class="text-3xl font-semibold text-slate-900">Progress Reports</h1>
+        <p class="mt-2 text-slate-600">Create lightweight, ongoing progress updates for students. No grades required — just narrative feedback about development and progress.</p>
+    </div>
+
+    {% if messages %}
+    <div class="space-y-4">
+        {% for message in messages %}
+        <div class="rounded-2xl border-l-4 border-emerald-500 bg-emerald-50 p-4 text-sm text-emerald-800">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-xl font-semibold text-slate-900">Create Progress Update</h2>
+        <form method="post" class="mt-6 space-y-4">
+            {% csrf_token %}
+            <div>
+                {{ form.student.label_tag }}
+                {{ form.student }}
+                {% if form.student.errors %}<p class="mt-1 text-sm text-rose-600">{{ form.student.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+                {{ form.body.label_tag }}
+                {{ form.body }}
+                {% if form.body.errors %}<p class="mt-1 text-sm text-rose-600">{{ form.body.errors.0 }}</p>{% endif %}
+            </div>
+
+            <button type="submit" class="rounded-2xl bg-academy px-5 py-3 text-white">Post update</button>
+        </form>
+    </div>
+
+    <div class="rounded-3xl bg-white p-8 shadow-lg shadow-slate-200">
+        <h2 class="text-xl font-semibold text-slate-900">Recent Progress Updates</h2>
+        {% if notes %}
+        <div class="mt-4 space-y-4">
+            {% for note in notes %}
+            <div class="rounded-2xl border border-slate-200 p-4">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="font-semibold text-slate-900">{{ note.student }}</p>
+                        <p class="text-sm text-slate-600">By {{ note.author|default:'-' }} on {{ note.created_at|date:'Y-m-d H:i' }}</p>
+                    </div>
+                </div>
+                <p class="mt-3 text-slate-700">{{ note.body|linebreaksbr }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="mt-4 text-slate-600">No progress updates yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

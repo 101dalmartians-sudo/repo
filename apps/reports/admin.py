@@ -9,7 +9,7 @@ from django.contrib import admin, messages
 from django.utils.html import format_html, format_html_join
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from .models import ReportingPeriod, ReportField, BiWeeklyReport, ReportingAnalytics
+from .models import ReportingPeriod, ReportField, BiWeeklyReport, ReportingAnalytics, ProgressNote
 
 
 @admin.register(ReportingPeriod)
@@ -365,6 +365,22 @@ class BiWeeklyReportAdmin(admin.ModelAdmin):
             messages.SUCCESS
         )
     archive_reports.short_description = "Archive selected reports"
+
+
+@admin.register(ProgressNote)
+class ProgressNoteAdmin(admin.ModelAdmin):
+    """Admin for managing lightweight progress notes"""
+
+    list_display = ['student', 'author', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['student__student_id', 'student__user__first_name', 'student__user__last_name', 'body']
+    readonly_fields = ['created_at', 'updated_at']
+    autocomplete_fields = ['student']
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.author = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(ReportingAnalytics)
